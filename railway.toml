@@ -1,0 +1,5 @@
+[build]
+buildCommand = "npm ci && npm run build -w packages/core && npx tsc -p packages/api/tsconfig.json"
+
+[deploy]
+startCommand = "node packages/api/dist/server.js"

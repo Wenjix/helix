@@ -88,7 +88,8 @@ router.post('/v1/repair', async (req: Request, res: Response) => {
 });
 
 router.get('/v1/check/:code/:category', (req: Request, res: Response) => {
-  const gene = engine.getGeneMap().lookup(req.params.code, req.params.category);
+  const { code, category } = req.params;
+  const gene = engine.getGeneMap().lookup(code as any, category as any);
   res.json({
     immune: !!gene && gene.qValue > 0.4,
     gene: gene ? {

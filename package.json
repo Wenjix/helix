@@ -1,38 +1,24 @@
 {
-  "name": "@helix-agent/core",
-  "version": "0.1.0",
-  "description": "Self-healing infrastructure for AI agent payments. PCEC auto-repairs payment failures across Tempo, Privy, Stripe, and any HTTP service.",
-  "type": "module",
-  "main": "dist/core/index.js",
-  "types": "dist/core/index.d.ts",
-  "exports": {
-    ".": "./dist/core/index.js",
-    "./tempo": "./dist/platforms/tempo/index.js",
-    "./privy": "./dist/platforms/privy/index.js",
-    "./generic": "./dist/platforms/generic/index.js"
-  },
-  "bin": {
-    "helix": "dist/cli/index.js"
-  },
+  "name": "helix-monorepo",
+  "private": true,
+  "workspaces": [
+    "packages/core",
+    "packages/mcp",
+    "dashboard"
+  ],
   "scripts": {
-    "build": "tsc",
-    "demo": "tsx src/demo/run.ts",
-    "demo:tempo": "tsx src/demo/tempo.ts",
-    "demo:privy": "tsx src/demo/privy.ts",
-    "dash": "tsx src/cli/index.ts dash",
-    "helix": "tsx src/cli/index.ts"
-  },
-  "keywords": ["agent", "payments", "self-healing", "pcec", "mpp", "tempo", "privy", "stripe"],
-  "license": "MIT",
-  "dependencies": {
-    "better-sqlite3": "^11.0.0",
-    "chalk": "^5.3.0",
-    "express": "^4.18.0"
+    "build": "npm run build -w packages/core",
+    "build:mcp": "npm run build -w packages/mcp",
+    "test": "npm run test -w packages/core",
+    "demo": "tsx examples/demo-all/run.ts",
+    "demo:tempo": "tsx examples/demo-tempo/run.ts",
+    "demo:privy": "tsx examples/demo-privy/run.ts",
+    "demo:real": "tsx examples/real-http/run.ts",
+    "dash": "tsx dashboard/server.ts",
+    "mcp": "tsx packages/mcp/src/server.ts",
+    "typecheck": "tsc --noEmit -p packages/core/tsconfig.json"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.0",
-    "@types/express": "^4.17.0",
-    "@types/node": "^20.0.0",
     "tsx": "^4.0.0",
     "typescript": "^5.5.0"
   }

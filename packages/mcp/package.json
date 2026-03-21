@@ -1,0 +1,23 @@
+{
+  "name": "@helix-agent/mcp",
+  "version": "0.1.0",
+  "description": "Helix MCP Server — self-healing payment repair tools for AI agents",
+  "type": "module",
+  "main": "dist/server.js",
+  "bin": {
+    "helix-mcp": "dist/server.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js"
+  },
+  "dependencies": {
+    "@helix-agent/core": "*",
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0",
+    "@types/node": "^20.0.0"
+  },
+  "license": "MIT"
+}

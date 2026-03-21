@@ -4,7 +4,8 @@
 
 Two lines to integrate. Any platform. Every failure fixed once, remembered forever.
 
-[![npm](https://img.shields.io/npm/v/@helix-agent/core)](https://www.npmjs.com/package/@helix-agent/core)
+[![CI](https://github.com/adrianhihi/helix/actions/workflows/ci.yml/badge.svg)](https://github.com/adrianhihi/helix/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/@helix-agent/core)](https://www.npmjs.com/package/@helix-agent/core)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ---
@@ -51,7 +52,7 @@ That's it. Two lines. When `fetch` fails:
 | Platform | Scenarios | What Helix Handles |
 |----------|-----------|-------------------|
 | **Tempo / MPP** | 13 | Balance, session, currency, nonce, batch, service, DEX, compliance, cascade, off-ramp, token pause, sponsor, network |
-| **Privy** | 4 unique | Policy spending limits, nonce desync, gas sponsor, cross-chain |
+| **Privy** | 7 unique | Policy limits, nonce desync, gas sponsor, cross-chain, insufficient balance, broadcast nonce, broadcast params |
 | **Generic HTTP** | 3 | Rate limit (429), server error (500), timeout |
 | **Stripe** | 🔜 | Card declined, expired card, rate limit |
 
@@ -74,9 +75,9 @@ Every fix makes every platform stronger.
 
 The Gene Map stores by `(code, category)` — **not** by platform. A fix learned from Tempo automatically protects Privy, Stripe, and any future platform with the same failure class.
 
-Run `npm run demo` to see this live — Privy scenarios 15-17 resolve instantly using Genes learned from Tempo scenarios 4, 12, and 13.
+Run `npm run demo` to see this live — Privy scenarios resolve instantly using Genes learned from Tempo.
 
-## All 20 Failure Scenarios
+## All 23 Failure Scenarios
 
 | # | Platform | Scenario | PCEC Strategy | Cross-Platform? |
 |---|----------|----------|---------------|----------------|
@@ -97,9 +98,12 @@ Run `npm run demo` to see this live — Privy scenarios 15-17 resolve instantly 
 | 15 | Privy | Nonce Desync | refresh_nonce | ⚡ from Tempo #4 |
 | 16 | Privy | Gas Sponsor Exhausted | self_pay_gas | ⚡ from Tempo #12 |
 | 17 | Privy | Cross-Chain Mismatch | switch_network | ⚡ from Tempo #13 |
-| 18 | Generic | 429 Rate Limited | backoff_retry | |
-| 19 | Generic | 500 Server Error | retry / switch_provider | ⚡ from Tempo #6 |
-| 20 | Generic | Request Timeout | retry | |
+| 18 | Privy | Insufficient Balance | reduce_request | ⚡ from Tempo #1 |
+| 19 | Privy | Broadcast Nonce Conflict | refresh_nonce | ⚡ from Tempo #4 |
+| 20 | Privy | Broadcast Invalid Params | fix_params | |
+| 21 | Generic | 429 Rate Limited | backoff_retry | |
+| 22 | Generic | 500 Server Error | retry / switch_provider | ⚡ from Tempo #6 |
+| 23 | Generic | Request Timeout | retry | |
 
 > Scenario #13 is not simulated — we ran `npx mppx` against OpenAI's MPP gateway and hit `TIP20 Uninitialized` in production.
 
@@ -172,7 +176,7 @@ try {
 ## Demo
 
 ```bash
-npm run demo          # All 20 scenarios, cross-platform immunity test
+npm run demo          # All 23 scenarios, cross-platform immunity test
 npm run demo:tempo    # Tempo-only (13 scenarios + immunity)
 npm run demo:privy    # Privy + cross-platform immunity from Tempo Genes
 npm run dash          # Minecraft isometric dashboard on :7842
@@ -236,7 +240,7 @@ helix/
 │   ├── platforms/              # Platform-specific adapters
 │   │   ├── index.ts            # Registry + default adapter chain
 │   │   ├── tempo/              # 13 scenarios
-│   │   ├── privy/              # 4 unique scenarios
+│   │   ├── privy/              # 7 unique scenarios
 │   │   ├── generic/            # 3 HTTP scenarios
 │   │   └── stripe/             # Placeholder
 │   │
@@ -248,7 +252,7 @@ helix/
 ## Roadmap
 
 - [x] Tempo / MPP — 13 scenarios, full PCEC pipeline
-- [x] Privy — 4 scenarios + cross-platform immunity
+- [x] Privy — 7 scenarios + cross-platform immunity
 - [x] Generic HTTP — 3 scenarios (429, 500, timeout)
 - [x] Cross-platform Gene sharing
 - [x] Isometric dashboard with 20 inject buttons

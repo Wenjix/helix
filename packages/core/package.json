@@ -1,0 +1,59 @@
+{
+  "name": "@helix-agent/core",
+  "version": "0.2.0",
+  "description": "Self-healing infrastructure for AI agent payments. Auto-repairs payment failures across Tempo, Privy, Stripe, and any HTTP service.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build && npm run test"
+  },
+  "keywords": [
+    "agent",
+    "payments",
+    "self-healing",
+    "pcec",
+    "gene-map",
+    "mpp",
+    "tempo",
+    "privy",
+    "stripe",
+    "error-recovery",
+    "ai-agent",
+    "machine-payments"
+  ],
+  "author": "Helix Contributors",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/adrianhihi/helix"
+  },
+  "homepage": "https://github.com/adrianhihi/helix#readme",
+  "bugs": {
+    "url": "https://github.com/adrianhihi/helix/issues"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.0.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0"
+  }
+}

@@ -120,6 +120,17 @@ router.get('/v1/platforms', (_req: Request, res: Response) => {
   });
 });
 
+// ── Telemetry: receive anonymous gene discoveries ──
+router.post('/api/telemetry', (req: Request, res: Response) => {
+  const { events } = req.body;
+  if (!Array.isArray(events)) { res.status(400).json({ error: 'events must be array' }); return; }
+  // Log discoveries (in production: store in DB for review)
+  for (const e of events) {
+    console.log(`[telemetry] ${e.code}/${e.category} → ${e.strategy} (${e.source}, q=${e.qValue}) "${e.errorPattern?.slice(0, 60)}"`);
+  }
+  res.json({ received: events.length });
+});
+
 router.get('/health', (_req: Request, res: Response) => {
   res.json({
     status: 'ok',

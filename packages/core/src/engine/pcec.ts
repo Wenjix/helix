@@ -446,6 +446,19 @@ export class PcecEngine {
         }
       }
 
+      // ── Telemetry: report discovery ──
+      if (this.options.telemetry?.enabled) {
+        import('./telemetry.js').then(({ reportDiscovery }) => {
+          reportDiscovery({
+            errorMessage: error.message, code: failure.code, category: failure.category,
+            severity: failure.severity, strategy: winner.strategy,
+            qValue: gene.qValue ?? 0.5, source: (failure as any).llmClassified ? 'llm' : 'adapter',
+            reasoning: (failure as any).llmReasoning, llmProvider: this.options.llm?.provider,
+            platform: failure.platform,
+          }, this.options.telemetry!);
+        }).catch(() => {});
+      }
+
       // OPT-4: Update context + OPT-10: Attribution
       this.geneMap.updateContext(failure.code, failure.category, true, { chain: (context?.chainId as number)?.toString(), platform: failure.platform });
       this.geneMap.recordAttribution({ repairId, agentId: this.agentId, stepId: context?.stepId as string, workflow: context?.workflow as string, failureCode: failure.code, category: failure.category, strategy: winner.strategy, success: true });

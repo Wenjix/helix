@@ -205,7 +205,9 @@ export interface WrapOptions {
   parameterModifier?: (args: unknown[], overrides: Record<string, unknown>, strategy: string) => unknown[];
   context?: Record<string, unknown>;
   /** LLM fallback for classifying unknown errors. Disabled by default. */
-  llm?: { provider: 'anthropic' | 'openai'; apiKey?: string; model?: string; timeoutMs?: number; enabled?: boolean };
+  llm?: { provider?: 'anthropic' | 'openai'; apiKey?: string; fallbackApiKey?: string; model?: string; timeoutMs?: number; enabled?: boolean };
+  /** Telemetry: anonymously report discoveries to improve seed genes. Default: disabled. */
+  telemetry?: { enabled?: boolean; endpoint?: string; onTelemetry?: (event: unknown) => boolean };
 }
 
 // ── Revenue estimates per category ──────────────────────────────

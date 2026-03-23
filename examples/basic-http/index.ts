@@ -3,10 +3,16 @@
 import { wrap } from '../../packages/core/src/engine/wrap.js';
 import type { WrapOptions } from '../../packages/core/src/engine/types.js';
 
+let callCount = 0;
 async function chargeCustomer(orderId: string, amount: number) {
-  const res = await fetch('https://httpbin.org/status/429');
-  if (!res.ok) throw new Error(`Payment API error: HTTP ${res.status}`);
-  return { orderId, amount, status: 'charged' };
+  callCount++;
+  if (callCount === 1) {
+    const res = await fetch('https://httpbin.org/status/429');
+    throw new Error(`Payment API error: HTTP ${res.status} Rate Limited`);
+  }
+  const res = await fetch('https://httpbin.org/get');
+  const data = await res.json() as { origin: string };
+  return { orderId, amount, status: 'charged', origin: data.origin };
 }
 
 const safeCharge = wrap(chargeCustomer, { mode: 'auto', agentId: 'basic-http', verbose: true, geneMapPath: ':memory:', maxRetries: 2 } as WrapOptions);

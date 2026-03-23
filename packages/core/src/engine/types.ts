@@ -208,6 +208,12 @@ export interface WrapOptions {
   llm?: { provider?: 'anthropic' | 'openai'; apiKey?: string; fallbackApiKey?: string; model?: string; timeoutMs?: number; enabled?: boolean };
   /** Telemetry: anonymously report discoveries to improve seed genes. Default: disabled. */
   telemetry?: { enabled?: boolean; endpoint?: string; onTelemetry?: (event: unknown) => boolean };
+  /** Custom logger (pino, winston, etc). Default: console with colors. */
+  logger?: { debug(m: string, d?: Record<string, unknown>): void; info(m: string, d?: Record<string, unknown>): void; warn(m: string, d?: Record<string, unknown>): void; error(m: string, d?: Record<string, unknown>): void };
+  /** Log level. Default: 'warn'. Set 'info' for verbose, 'debug' for everything. */
+  logLevel?: 'debug' | 'info' | 'warn' | 'error' | 'silent';
+  /** Log format. 'pretty' (colored) or 'json' (structured). Default: 'pretty'. */
+  logFormat?: 'pretty' | 'json';
 }
 
 // ── Revenue estimates per category ──────────────────────────────

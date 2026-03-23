@@ -5,6 +5,7 @@ import type { RepairResult, WrapOptions } from './types.js';
 import { DEFAULT_CONFIG } from './types.js';
 import { defaultAdapters } from '../platforms/index.js';
 import { detectSignature, applyOverrides } from './auto-detect.js';
+import { createLogger } from './logger.js';
 
 let _defaultEngine: PcecEngine | null = null;
 let _defaultGeneMap: GeneMap | null = null;
@@ -42,8 +43,8 @@ export function wrap<TArgs extends unknown[], TResult>(
   options?: WrapOptions,
 ): (...args: TArgs) => Promise<TResult> {
   const maxRetries = options?.maxRetries ?? options?.config?.maxRetries ?? DEFAULT_CONFIG.maxRetries;
-  const verbose = options?.verbose ?? options?.config?.verbose ?? DEFAULT_CONFIG.verbose;
   const agentId = options?.agentId ?? 'wrapped';
+  const log = createLogger({ logger: options?.logger, logLevel: options?.logLevel, logFormat: options?.logFormat, verbose: options?.verbose });
 
   return async (...args: TArgs): Promise<TResult> => {
     const startTime = Date.now();
@@ -61,7 +62,7 @@ export function wrap<TArgs extends unknown[], TResult>(
         return result;
       } catch (error) {
         if (attempt === maxRetries) {
-          if (verbose) console.error(`\x1b[31m[helix] All ${maxRetries} repair attempts exhausted\x1b[0m`);
+          log.error('All repair attempts exhausted', { attempts: maxRetries });
           throw error;
         }
 
@@ -70,7 +71,7 @@ export function wrap<TArgs extends unknown[], TResult>(
           const errMsg = (error as any)?.shortMessage ?? (error as Error).message ?? String(error);
           const wrappedError = error instanceof Error ? error : new Error(errMsg);
 
-          if (verbose) console.log(`\x1b[33m[helix] Payment failed (attempt ${attempt + 1}/${maxRetries}), engaging PCEC...\x1b[0m`);
+          log.info('Payment failed, engaging PCEC', { attempt: attempt + 1, maxRetries });
           bus.emit('retry', agentId, { attempt: attempt + 1, maxRetries });
 
           const result: RepairResult = await engine.repair(wrappedError, {
@@ -92,14 +93,11 @@ export function wrap<TArgs extends unknown[], TResult>(
 
           const strategy = result.winner?.strategy ?? result.gene?.strategy;
           if (!strategy) {
-            if (verbose) console.error(`\x1b[31m[helix] No viable strategy\x1b[0m`);
+            log.warn('No viable strategy');
             continue; // next attempt
           }
 
-          if (verbose) {
-            const tag = result.immune ? '\x1b[36m⚡ IMMUNE' : '\x1b[32m✓ REPAIRED';
-            console.log(`${tag}\x1b[0m via ${strategy} in ${result.totalMs}ms ($${result.revenueProtected} protected)`);
-          }
+          log.info(result.immune ? `IMMUNE via ${strategy}` : `REPAIRED via ${strategy}`, { ms: result.totalMs, immune: result.immune });
 
           // Apply overrides for non-simple strategies
           if (!SIMPLE_RETRY.includes(strategy)) {
@@ -108,7 +106,7 @@ export function wrap<TArgs extends unknown[], TResult>(
             // Priority 1: User parameterModifier
             if (options?.parameterModifier && Object.keys(overrides).length > 0) {
               currentArgs = options.parameterModifier(currentArgs as unknown[], overrides, strategy) as TArgs;
-              if (verbose) console.log(`\x1b[33m[helix] Applied overrides via parameterModifier\x1b[0m`);
+              log.info('Applied overrides via parameterModifier');
             }
             // Priority 2: Auto-detect
             else {
@@ -116,7 +114,7 @@ export function wrap<TArgs extends unknown[], TResult>(
               const applied = applyOverrides([...currentArgs] as unknown[], overrides, strategy, sig);
               if (applied) {
                 currentArgs = applied as TArgs;
-                if (verbose) console.log(`\x1b[33m[helix] Auto-applied overrides (${sig.type}): ${Object.keys(overrides).join(', ') || strategy}\x1b[0m`);
+                log.info(`Auto-applied overrides (${sig.type})`, { strategy, keys: Object.keys(overrides) });
               }
             }
           }

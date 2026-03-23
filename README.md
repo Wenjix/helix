@@ -6,9 +6,10 @@
 
 Every payment failure on the internet should only need to be solved once.
 
+[![CI](https://github.com/adrianhihi/helix/actions/workflows/ci.yml/badge.svg)](https://github.com/adrianhihi/helix/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/@helix-agent/core)](https://www.npmjs.com/package/@helix-agent/core)
-[![tests](https://img.shields.io/badge/tests-135%2B%20passing-brightgreen)]()
-[![license](https://img.shields.io/badge/license-MIT-blue)]()
+[![tests](https://img.shields.io/badge/tests-174%20passing-brightgreen)]()
+[![license](https://img.shields.io/npm/l/@helix-agent/core)](LICENSE)
 
 [Quick Start](#quick-start) · [How It Works](#how-it-works) · [API](#api) · [Dashboard](#dashboard) · [MCP Server](#mcp-server)
 

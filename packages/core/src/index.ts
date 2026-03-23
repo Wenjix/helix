@@ -37,6 +37,8 @@ export { llmClassify, llmConstructCandidates, llmGenerateReasoning } from './eng
 export type { LlmConfig } from './engine/llm.js';
 export { reportDiscovery } from './engine/telemetry.js';
 export type { TelemetryEvent, TelemetryConfig } from './engine/telemetry.js';
+export { createLogger } from './engine/logger.js';
+export type { HelixLogger, LogLevel, LogFormat } from './engine/logger.js';
 export { getDexPreset, DEX_PRESETS } from './engine/dex-presets.js';
 export { registerShutdownHandler } from './engine/lifecycle.js';
 export { getRootCause } from './engine/root-causes.js';

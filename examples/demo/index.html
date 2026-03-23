@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Helix On-Call Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0a0a0f; color: #e5e5e5; font-family: 'Sora', sans-serif; font-size: 13px; overflow-x: hidden; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  .dim { color: rgba(255,255,255,0.4); }
+
+  /* Header */
+  .header { position: fixed; top: 0; left: 0; right: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; padding: 14px 28px; background: rgba(10,10,15,0.92); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .header h1 { font-size: 15px; font-weight: 700; letter-spacing: 2px; }
+  .header .status { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #4ade80; display: inline-block; position: relative; }
+  .status-dot::after { content: ''; position: absolute; inset: -3px; border-radius: 50%; border: 2px solid #4ade80; animation: pulse 2s ease-in-out infinite; }
+  .status-dot.disconnected { background: #f87171; }
+  .status-dot.disconnected::after { border-color: #f87171; }
+  @keyframes pulse { 0%, 100% { opacity: 0.4; transform: scale(1); } 50% { opacity: 0; transform: scale(1.6); } }
+
+  .container { padding: 72px 28px 60px; max-width: 1440px; margin: 0 auto; }
+
+  /* Cards */
+  .card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 18px; }
+
+  /* KPI Row */
+  .kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 18px; }
+  .kpi-card { text-align: center; }
+  .kpi-card .value { font-family: 'JetBrains Mono', monospace; font-size: 28px; font-weight: 600; line-height: 1.2; }
+  .kpi-card .label { font-size: 10px; text-transform: uppercase; letter-spacing: 1.2px; color: rgba(255,255,255,0.4); margin-top: 6px; }
+  .red { color: #f87171; } .green { color: #4ade80; } .purple { color: #8b5cf6; } .amber { color: #f59e0b; } .blue { color: #3b82f6; }
+
+  /* Systematic Alert */
+  #systematic-alert { display: none; margin-bottom: 18px; border-color: rgba(248,113,113,0.4); background: rgba(248,113,113,0.06); padding: 14px 20px; }
+  #systematic-alert.visible { display: flex; align-items: center; gap: 12px; }
+  #systematic-alert .alert-icon { font-size: 18px; }
+  #systematic-alert .alert-title { font-weight: 600; color: #f87171; font-size: 13px; }
+  #systematic-alert .alert-msg { font-size: 12px; color: rgba(255,255,255,0.6); margin-top: 2px; }
+
+  /* Main Grid */
+  .main-grid { display: grid; grid-template-columns: 60% 40%; gap: 18px; }
+  .section-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; color: rgba(255,255,255,0.4); margin-bottom: 12px; }
+
+  /* Live Feed */
+  #live-feed { max-height: 620px; overflow: hidden; }
+  .feed-list { display: flex; flex-direction: column; gap: 8px; }
+  .event-card { padding: 12px 14px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04); border-radius: 8px; animation: slideIn 0.35s ease-out; }
+  @keyframes slideIn { from { opacity: 0; transform: translateY(-16px); } to { opacity: 1; transform: translateY(0); } }
+  .event-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .event-time { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: rgba(255,255,255,0.3); }
+  .event-agent { font-size: 12px; font-weight: 600; }
+  .event-error { font-size: 11px; color: rgba(255,255,255,0.5); margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .event-bottom { display: flex; justify-content: space-between; align-items: center; }
+  .event-result { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 500; }
+  .pill { font-family: 'JetBrains Mono', monospace; font-size: 9px; padding: 2px 8px; border-radius: 99px; font-weight: 500; }
+  .pill-green { background: rgba(74,222,128,0.12); color: #4ade80; }
+  .pill-blue { background: rgba(59,130,246,0.12); color: #3b82f6; }
+  .pill-purple { background: rgba(139,92,246,0.12); color: #8b5cf6; }
+  .event-elapsed { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: rgba(255,255,255,0.3); }
+
+  /* Sidebar */
+  .sidebar { display: flex; flex-direction: column; gap: 18px; }
+
+  /* Agent Health */
+  .agent-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .agent-row .name { font-size: 12px; min-width: 100px; }
+  .agent-row .bar-wrap { flex: 1; height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
+  .agent-row .bar-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+  .agent-row .pct { font-family: 'JetBrains Mono', monospace; font-size: 11px; min-width: 38px; text-align: right; }
+
+  /* Gene Map */
+  .gene-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+  .gene-row .gene-name { min-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .gene-row .bar-wrap { flex: 1; height: 5px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
+  .gene-row .bar-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+  .gene-row .q-val { min-width: 34px; text-align: right; }
+  .gene-row .hits { min-width: 30px; text-align: right; color: rgba(255,255,255,0.3); font-size: 10px; }
+
+  /* Error Distribution */
+  .dist-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .dist-row .dist-label { font-size: 11px; min-width: 100px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dist-row .bar-wrap { flex: 1; height: 8px; background: rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden; }
+  .dist-row .bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+  .dist-row .dist-pct { font-family: 'JetBrains Mono', monospace; font-size: 11px; min-width: 34px; text-align: right; }
+
+  /* Footer */
+  .footer { margin-top: 24px; display: flex; justify-content: center; gap: 32px; padding: 14px 0; border-top: 1px solid rgba(255,255,255,0.06); }
+  .footer span { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: rgba(255,255,255,0.3); }
+  .footer span b { color: rgba(255,255,255,0.55); font-weight: 500; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>HELIX ON-CALL</h1>
+  <div class="status">
+    <span class="status-dot" id="status-dot"></span>
+    <span id="status-text" class="mono" style="font-size:12px; color:#4ade80;">LIVE <span class="dim">3 agents</span></span>
+  </div>
+</div>
+
+<div class="container">
+  <!-- KPI Row -->
+  <div class="kpi-row">
+    <div class="card kpi-card"><div class="value red" id="kpi-failures">0</div><div class="label">Failures</div></div>
+    <div class="card kpi-card"><div class="value green" id="kpi-repaired">0</div><div class="label">Repaired</div></div>
+    <div class="card kpi-card"><div class="value purple" id="kpi-immune">0</div><div class="label">Immune &#x26A1;</div></div>
+    <div class="card kpi-card"><div class="value amber" id="kpi-revenue">$0</div><div class="label">Revenue Protected</div></div>
+    <div class="card kpi-card"><div class="value green" id="kpi-rate">0%</div><div class="label">Success Rate</div></div>
+  </div>
+
+  <!-- Systematic Alert -->
+  <div class="card" id="systematic-alert">
+    <span class="alert-icon">&#x1F6A8;</span>
+    <div><div class="alert-title" id="alert-title">Systematic Failure Detected</div><div class="alert-msg" id="alert-msg"></div></div>
+  </div>
+
+  <!-- Main Grid -->
+  <div class="main-grid">
+    <div class="card" id="live-feed">
+      <div class="section-title">Live Feed</div>
+      <div class="feed-list" id="feed-list"></div>
+    </div>
+    <div class="sidebar">
+      <div class="card" id="agent-health">
+        <div class="section-title">Agent Health</div>
+        <div id="agent-health-list"></div>
+      </div>
+      <div class="card" id="gene-map">
+        <div class="section-title">Gene Map</div>
+        <div id="gene-map-list"></div>
+      </div>
+      <div class="card" id="error-dist">
+        <div class="section-title">Error Distribution</div>
+        <div id="error-dist-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <span>Uptime <b id="ft-uptime">00:00:00</b></span>
+    <span>Events <b id="ft-events">0</b></span>
+    <span>Rate <b id="ft-rate">0</b>/min</span>
+    <span>Genes <b id="ft-genes">0</b></span>
+    <span>Chain <b id="ft-chain">Base Sepolia</b></span>
+  </div>
+</div>
+
+<script>
+(function() {
+  const SSE_URL = 'http://localhost:7843/events';
+  const MAX_EVENTS = 20;
+  const AGENTS = {
+    'order-bot':  { icon: '\uD83D\uDCB0', name: 'order-bot' },
+    'refund-bot': { icon: '\uD83D\uDD04', name: 'refund-bot' },
+    'sub-bot':    { icon: '\uD83D\uDCC5', name: 'sub-bot' }
+  };
+  const SOURCE_STYLES = {
+    'real httpbin':     'pill-green',
+    'Base Sepolia':     'pill-blue',
+    'Coinbase format':  'pill-purple'
+  };
+
+  let events = [];
+  let startTime = Date.now();
+  let totalEvents = 0;
+  let sse = null;
+
+  // --- Time ago ---
+  function timeAgo(ts) {
+    const diff = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+    if (diff < 60) return diff + 's ago';
+    if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+    if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+    return Math.floor(diff / 86400) + 'd ago';
+  }
+
+  // --- Bar color helper ---
+  function barColor(pct) {
+    if (pct > 90) return '#4ade80';
+    if (pct > 70) return '#f59e0b';
+    return '#f87171';
+  }
+  function qColor(q) {
+    if (q > 0.8) return '#4ade80';
+    if (q > 0.5) return '#f59e0b';
+    return '#f87171';
+  }
+
+  // --- Render live feed ---
+  function renderFeed() {
+    const list = document.getElementById('feed-list');
+    list.innerHTML = '';
+    const visible = events.slice(0, MAX_EVENTS);
+    visible.forEach(ev => {
+      const agent = AGENTS[ev.agent] || { icon: '\uD83E\uDD16', name: ev.agent || 'unknown' };
+      const srcClass = SOURCE_STYLES[ev.source] || 'pill-blue';
+      let resultHtml;
+      if (ev.result === 'immune') {
+        resultHtml = '<span class="event-result purple">\u26A1 IMMUNE</span>';
+      } else if (ev.result === 'repaired') {
+        resultHtml = '<span class="event-result green">\u2705 REPAIRED via ' + (ev.strategy || 'retry') + '</span>';
+      } else {
+        resultHtml = '<span class="event-result red">\u274C FAILED</span>';
+      }
+      const card = document.createElement('div');
+      card.className = 'event-card';
+      card.innerHTML =
+        '<div class="event-top">' +
+          '<span class="event-agent">' + agent.icon + ' ' + agent.name + '</span>' +
+          '<span class="event-time" data-ts="' + ev.timestamp + '">' + timeAgo(ev.timestamp) + '</span>' +
+        '</div>' +
+        '<div class="event-error">' + (ev.errorType || 'Error') + ': ' + (ev.message || '') + '</div>' +
+        '<div class="event-bottom">' +
+          resultHtml +
+          '<span class="pill ' + srcClass + '">' + (ev.source || '') + '</span>' +
+          '<span class="event-elapsed mono">' + (ev.elapsed || '—') + '</span>' +
+        '</div>';
+      list.appendChild(card);
+    });
+  }
+
+  // --- Render agent health ---
+  function renderAgentHealth(agents) {
+    const el = document.getElementById('agent-health-list');
+    el.innerHTML = '';
+    (agents || []).forEach(a => {
+      const info = AGENTS[a.name] || { icon: '\uD83E\uDD16', name: a.name };
+      const pct = a.health || 0;
+      const row = document.createElement('div');
+      row.className = 'agent-row';
+      row.innerHTML =
+        '<span class="name">' + info.icon + ' ' + info.name + '</span>' +
+        '<div class="bar-wrap"><div class="bar-fill" style="width:' + pct + '%;background:' + barColor(pct) + '"></div></div>' +
+        '<span class="pct mono" style="color:' + barColor(pct) + '">' + pct + '%</span>';
+      el.appendChild(row);
+    });
+  }
+
+  // --- Render gene map ---
+  function renderGeneMap(genes) {
+    const el = document.getElementById('gene-map-list');
+    el.innerHTML = '';
+    (genes || []).slice(0, 5).forEach(g => {
+      const q = g.qValue || 0;
+      const w = Math.round(q * 100);
+      const row = document.createElement('div');
+      row.className = 'gene-row';
+      row.innerHTML =
+        '<span class="gene-name">' + (g.name || '') + '</span>' +
+        '<div class="bar-wrap"><div class="bar-fill" style="width:' + w + '%;background:' + qColor(q) + '"></div></div>' +
+        '<span class="q-val" style="color:' + qColor(q) + '">' + q.toFixed(2) + '</span>' +
+        '<span class="hits">' + (g.hits || 0) + 'x</span>';
+      el.appendChild(row);
+    });
+  }
+
+  // --- Render error distribution ---
+  function renderErrorDist(dist) {
+    const el = document.getElementById('error-dist-list');
+    el.innerHTML = '';
+    const colors = ['#f87171', '#f59e0b', '#3b82f6', '#8b5cf6', '#4ade80'];
+    const total = (dist || []).reduce((s, d) => s + (d.count || 0), 0) || 1;
+    (dist || []).forEach((d, i) => {
+      const pct = Math.round((d.count / total) * 100);
+      const row = document.createElement('div');
+      row.className = 'dist-row';
+      row.innerHTML =
+        '<span class="dist-label">' + (d.label || '') + '</span>' +
+        '<div class="bar-wrap"><div class="bar-fill" style="width:' + pct + '%;background:' + colors[i % colors.length] + '"></div></div>' +
+        '<span class="dist-pct">' + pct + '%</span>';
+      el.appendChild(row);
+    });
+  }
+
+  // --- Update KPIs ---
+  function updateKPIs(stats) {
+    if (!stats) return;
+    if (stats.failures != null) document.getElementById('kpi-failures').textContent = stats.failures;
+    if (stats.repaired != null) document.getElementById('kpi-repaired').textContent = stats.repaired;
+    if (stats.immune != null) document.getElementById('kpi-immune').textContent = stats.immune;
+    if (stats.revenue != null) document.getElementById('kpi-revenue').textContent = '$' + Number(stats.revenue).toLocaleString();
+    if (stats.rate != null) document.getElementById('kpi-rate').textContent = stats.rate + '%';
+  }
+
+  // --- Update footer ---
+  function updateFooter(stats) {
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    const h = String(Math.floor(elapsed / 3600)).padStart(2, '0');
+    const m = String(Math.floor((elapsed % 3600) / 60)).padStart(2, '0');
+    const s = String(elapsed % 60).padStart(2, '0');
+    document.getElementById('ft-uptime').textContent = h + ':' + m + ':' + s;
+    document.getElementById('ft-events').textContent = totalEvents;
+    const mins = Math.max(1, elapsed / 60);
+    document.getElementById('ft-rate').textContent = (totalEvents / mins).toFixed(1);
+    if (stats && stats.geneCount != null) document.getElementById('ft-genes').textContent = stats.geneCount;
+    if (stats && stats.chain) document.getElementById('ft-chain').textContent = stats.chain;
+  }
+
+  // --- Systematic alert ---
+  function showSystematic(data) {
+    const el = document.getElementById('systematic-alert');
+    el.classList.add('visible');
+    document.getElementById('alert-title').textContent = data.title || 'Systematic Failure Detected';
+    document.getElementById('alert-msg').textContent = data.message || '';
+  }
+
+  // --- Add event ---
+  function addEvent(ev) {
+    ev.timestamp = ev.timestamp || Date.now();
+    events.unshift(ev);
+    if (events.length > MAX_EVENTS) events.length = MAX_EVENTS;
+    totalEvents++;
+    renderFeed();
+  }
+
+  // --- SSE ---
+  function connectSSE() {
+    if (sse) { try { sse.close(); } catch(e) {} }
+    sse = new EventSource(SSE_URL);
+    sse.onopen = function() {
+      document.getElementById('status-dot').classList.remove('disconnected');
+      document.getElementById('status-text').innerHTML = 'LIVE <span class="dim">3 agents</span>';
+      document.getElementById('status-text').style.color = '#4ade80';
+    };
+    sse.onmessage = function(msg) {
+      let data;
+      try { data = JSON.parse(msg.data); } catch(e) { return; }
+      if (data.type === 'init') {
+        if (data.events) { events = data.events.slice(0, MAX_EVENTS); totalEvents = data.totalEvents || events.length; renderFeed(); }
+        if (data.stats) updateKPIs(data.stats);
+        if (data.agents) renderAgentHealth(data.agents);
+        if (data.genes) renderGeneMap(data.genes);
+        if (data.errorDist) renderErrorDist(data.errorDist);
+        if (data.stats) updateFooter(data.stats);
+        if (data.startTime) startTime = data.startTime;
+      } else if (data.type === 'event') {
+        addEvent(data);
+      } else if (data.type === 'stats') {
+        updateKPIs(data);
+        if (data.agents) renderAgentHealth(data.agents);
+        if (data.genes) renderGeneMap(data.genes);
+        if (data.errorDist) renderErrorDist(data.errorDist);
+        updateFooter(data);
+      } else if (data.type === 'systematic') {
+        showSystematic(data);
+      }
+    };
+    sse.onerror = function() {
+      document.getElementById('status-dot').classList.add('disconnected');
+      document.getElementById('status-text').innerHTML = 'DISCONNECTED';
+      document.getElementById('status-text').style.color = '#f87171';
+      sse.close();
+      setTimeout(connectSSE, 3000);
+    };
+  }
+
+  // --- Tick: update time-ago + uptime ---
+  setInterval(function() {
+    document.querySelectorAll('.event-time[data-ts]').forEach(function(el) {
+      el.textContent = timeAgo(Number(el.getAttribute('data-ts')));
+    });
+    updateFooter();
+  }, 1000);
+
+  connectSSE();
+})();
+</script>
+</body>
+</html>

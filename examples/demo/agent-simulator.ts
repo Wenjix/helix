@@ -26,6 +26,12 @@ try { unlinkSync(GENE_DB); } catch {}
 const geneMap = new GeneMap(GENE_DB);
 (geneMap as any).db.exec('DELETE FROM genes');  // Start fresh for demo — show repair → immune journey
 (geneMap as any).cache.clear();
+// Re-seed with demo-friendly strategies (backoff_retry works, switch_endpoint doesn't)
+geneMap.store({
+  failureCode: 'rate-limited', category: 'auth', strategy: 'backoff_retry',
+  params: { defaultDelayMs: 500 }, successCount: 0, avgRepairMs: 500,
+  platforms: ['generic', 'coinbase'], qValue: 0.7, consecutiveFailures: 0,
+});
 const engine = new PcecEngine(geneMap, 'demo', { mode: 'auto', provider: { rpcUrl: RPC } });
 for (const a of defaultAdapters) engine.registerAdapter(a);
 

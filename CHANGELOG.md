@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.5.0] - 2026-03-24
+
+### Added
+- **Error Embedding**: Token-based semantic error matching with 28 known signatures. Fuzzy matching when exact string match fails. `addSignature()` for custom patterns.
+- **Strategy A/B Testing**: Controlled experiments for new repair strategies. 90/10 traffic split, auto-evaluation, variant promotion.
+- **Gene Registry**: Push/pull shared repair knowledge across instances. Registry server with health/stats endpoints.
+- 288 tests across 32 files (from 257/30)
+
 ## [1.4.0] - 2026-03-24
 
 ### Added

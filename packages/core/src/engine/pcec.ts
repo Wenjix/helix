@@ -12,6 +12,8 @@ import type {
   RepairContext,
   RepairResult,
   WrapOptions,
+  ErrorCode,
+  FailureCategory,
 } from './types.js';
 import { REVENUE_AT_RISK } from './types.js';
 import { getRootCause } from './root-causes.js';
@@ -19,6 +21,9 @@ import { detectStrategyChain, isChainStrategy, parseChainSteps } from './chain.j
 import { executeChain } from './chain-executor.js';
 import { HelixOtel, NOOP_OTEL } from './otel.js';
 import { GeneRegistryClient } from './gene-registry.js';
+import { matchErrorSignature } from './error-embedding.js';
+import { ABTestManager } from './ab-test.js';
+import type { ABTest } from './ab-test.js';
 
 // Category C strategies that move funds — require 'full' mode
 const FUND_MOVEMENT_STRATEGIES = [
@@ -63,6 +68,7 @@ export class PcecEngine {
   private lastFailure: { code: string; category: string; timestamp: number } | null = null;
   private otel: HelixOtel;
   private registry?: GeneRegistryClient;
+  private abTests: ABTestManager = new ABTestManager();
 
   constructor(geneMap: GeneMap, agentId: string = 'default', options?: WrapOptions) {
     this.geneMap = geneMap;
@@ -130,6 +136,18 @@ export class PcecEngine {
         if (rc) result.rootCauseHint = rc.hint;
         return result;
       }
+    }
+    const embeddingMatch = matchErrorSignature(error.message);
+    if (embeddingMatch && embeddingMatch.similarity >= 0.5) {
+      return {
+        code: embeddingMatch.failureCode as ErrorCode,
+        category: embeddingMatch.failureCategory as FailureCategory,
+        severity: 'medium',
+        platform: 'unknown',
+        details: error.message,
+        timestamp: Date.now(),
+        rootCauseHint: `Embedding match (${(embeddingMatch.similarity * 100).toFixed(0)}%): ${embeddingMatch.matchedSignature.join(' + ')}`,
+      };
     }
     return {
       code: 'unknown', category: 'unknown', severity: 'medium',
@@ -618,5 +636,9 @@ export class PcecEngine {
 
   getGeneMap(): GeneMap {
     return this.geneMap;
+  }
+
+  getABTests(): ABTest[] {
+    return this.abTests.getAllTests();
   }
 }

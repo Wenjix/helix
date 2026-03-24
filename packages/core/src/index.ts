@@ -55,3 +55,7 @@ export { SEED_GENES } from './engine/seed-genes.js';
 export { validateStrategyParams, STRATEGY_SCHEMAS } from './engine/strategy-schemas.js';
 export { simulate, simulateAsync } from './testing.js';
 export type { SimulateOptions, SimulateResult } from './testing.js';
+export { matchErrorSignature, tokenize, tokenSimilarity, addSignature, getSignatures } from './engine/error-embedding.js';
+export type { ErrorSignature } from './engine/error-embedding.js';
+export { ABTestManager } from './engine/ab-test.js';
+export type { ABTest } from './engine/ab-test.js';

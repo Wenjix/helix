@@ -230,21 +230,19 @@ Every repair strategy is verified against safety constraints before execution us
 Few-shot repair learning: after seeing 3 nonce errors repaired, the system learns the "nonce error repair pattern" and can fix the 4th variant with a single example. Built on top of Context-Aware Gene Map's cross-platform transfer mechanism.
 - Status: Context-aware lookup and cross-platform transfer shipped in v1.5. Meta-learning layer in development.
 
-### Self-Generating Adapters
-New payment platform launches with unfamiliar error formats? Helix doesn't wait for a human to write an adapter. When Perceive accuracy drops for a new platform, Helix automatically collects error samples, calls an LLM to generate a platform adapter, sandbox-tests it, and hot-deploys it — restoring 99% accuracy with zero human intervention.
+### Self-Evolution Engine
 
-```
-Scenario: Kite AI launches with new error formats
-  Today:   Engineer writes Kite adapter manually (2-3 days)
-  Level 3: Helix detects low Perceive accuracy on Kite errors
-    → Auto-collects Kite error samples
-    → LLM generates Kite adapter (perceive + construct)
-    → Sandbox test → passes
-    → Hot-deploy → Perceive accuracy restored to 99%
-    → Zero human intervention
-```
+Helix doesn't just heal other agents — it heals itself.
 
-- Status: LLM Perceive fallback + Error Embedding shipped in v1.5. Auto-generation pipeline in development.
+| Level | Capability | Status |
+|-------|-----------|--------|
+| 1. Parameter evolution | Q-values, strategy params auto-optimize | Shipped |
+| 2. Strategy discovery | LLM generates new repair strategies, A/B tested | Shipped |
+| 3. Component generation | System detects weak perceive accuracy → auto-generates new adapter → sandbox tests → deploys | In development |
+| 4. Architecture evolution | System decides it needs a new pipeline stage → designs interface → generates code → canary deploys | Planned |
+| 5. Meta-evolution | System improves its own evolution mechanism — recursive self-improvement | Research |
+
+From parameter tuning to recursive self-improvement. Each level is an independent research contribution.
 
 ### Adversarial Robustness
 Four-layer defense against Gene Registry poisoning: reputation scoring, multi-agent verification (3 independent agents must validate), anomaly detection on Q-value trajectories, and automatic rollback to last known safe state.

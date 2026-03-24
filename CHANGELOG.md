@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.6.0] - 2026-03-24
+
+### Added
+- **REST API Server**: `npx helix serve` starts HTTP API for cross-language integration (Python, Go, Rust)
+- POST /repair — send error, get diagnosis + strategy + repair result
+- GET /health, /status, /genes — healthcheck, Gene Map stats, gene listing
+- CORS enabled, zero external dependencies (node:http)
+- 298 tests across 33 files (from 288/32)
+
 ## [1.5.0] - 2026-03-24
 
 ### Added

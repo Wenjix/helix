@@ -53,6 +53,8 @@ export { getRootCause } from './engine/root-causes.js';
 export type { RootCause } from './engine/root-causes.js';
 export { SEED_GENES } from './engine/seed-genes.js';
 export { validateStrategyParams, STRATEGY_SCHEMAS } from './engine/strategy-schemas.js';
+export { createApiServer } from './api-server.js';
+export type { ApiServerOptions } from './api-server.js';
 export { simulate, simulateAsync } from './testing.js';
 export type { SimulateOptions, SimulateResult } from './testing.js';
 export { matchErrorSignature, tokenize, tokenSimilarity, addSignature, getSignatures } from './engine/error-embedding.js';

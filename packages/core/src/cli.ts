@@ -18,6 +18,7 @@ function printHelp() {
     gc         Gene Map garbage collection
     stats      Agent attribution stats
     audit      Show repair audit log
+    serve      Start REST API server
     help       Show this help
 
   Examples:
@@ -145,6 +146,16 @@ function agentStats(agentId: string) {
         console.log('');
       }
       engine.getGeneMap().close();
+      break;
+    }
+    case 'serve': {
+      const portIdx = process.argv.indexOf('--port');
+      const port = portIdx !== -1 ? parseInt(process.argv[portIdx + 1]) : 7842;
+      const modeIdx = process.argv.indexOf('--mode');
+      const mode = modeIdx !== -1 ? process.argv[modeIdx + 1] as 'observe' | 'auto' | 'full' : 'observe';
+      const { createApiServer } = await import('./api-server.js');
+      const api = createApiServer({ port, mode });
+      await api.start();
       break;
     }
     case 'help': case '--help': case '-h': case undefined: printHelp(); break;

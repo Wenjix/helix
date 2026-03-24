@@ -200,6 +200,18 @@ Listed on [mppscan.com](https://mppscan.com).
 | A-Mem | Gene relationship links |
 | Who&When | Failure attribution |
 
+## Vision
+
+Helix is a **vertical agent for payment reliability** — not a retry wrapper, but a "wrapper with a brain" that deeply integrates into agent payment workflows.
+
+The architecture follows three 2026 AI infrastructure principles:
+
+1. **Agentic Workflow**: PCEC is a multi-agent repair pipeline — four specialized agents (Perceive, Construct, Evaluate, Commit) collaborate on each repair with configurable human-in-the-loop via three safety modes.
+
+2. **Proprietary Data Moat**: Gene Map is Helix's core data asset. Every repair generates a data point that doesn't exist on the internet or in any LLM's training set. Gene Map lookup is domain-specific RAG: embed error → retrieve repair experience → apply strategy. More agents = more data = better repairs = more agents.
+
+3. **Progressive Automation**: Day 1, LLM handles 100% of novel diagnoses ($0.001/repair). Day 30, Gene Map handles 90% ($0/repair). Day 180, Gene Map handles 99%. Cost decreases with usage, not increases.
+
 ## Technology Roadmap
 
 ### Causal Repair Graph
@@ -229,7 +241,16 @@ Phase 2 (next):    PostgreSQL + pgvector — vector semantic error matching
 Phase 3:           Temporal Knowledge Graph — causal relationships + time-aware
 Phase 4:           Federated Learning — privacy-preserving distributed RL
 
-The Gene Map evolves from a local repair cache into a distributed temporal knowledge graph with federated learning — the collective intelligence layer for the autonomous agent economy.
+### Storage Evolution
+
+| Phase | Storage | Capability | Use Case |
+|-------|---------|-----------|----------|
+| 1 (current) | SQLite | Local key-value + Q-value | Single agent, zero dependency |
+| 2 (next) | PostgreSQL + pgvector | Vector semantic search | Multi-agent, semantic error matching |
+| 3 | Temporal Knowledge Graph | Causal relationships + time-aware queries | Root cause analysis, temporal patterns |
+| 4 | Federated Learning layer | Privacy-preserving distributed RL | Cross-org learning without data sharing |
+
+Gene Map evolves from a local repair cache into a **distributed temporal knowledge graph with federated learning** — the collective intelligence layer for the autonomous agent economy.
 
 ## What's New in v1.5
 

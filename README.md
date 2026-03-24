@@ -2,6 +2,8 @@
 
 # Helix
 
+![Helix Demo](./assets/demo.gif)
+
 **Self-healing infrastructure for AI agent payments**
 
 Every payment failure on the internet should only need to be solved once.

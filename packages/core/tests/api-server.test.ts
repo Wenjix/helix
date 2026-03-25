@@ -94,10 +94,16 @@ describe('REST API Server', () => {
     }
   });
 
-  it('POST /dream returns not_implemented', async () => {
-    const res = await fetch(`${BASE}/dream`, { method: 'POST' });
+  it('POST /dream triggers dream cycle', async () => {
+    const res = await fetch(`${BASE}/dream`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ force: true }),
+    });
     const data = await res.json() as any;
-    expect(data.status).toBe('not_implemented');
+    expect(data.success).toBe(true);
+    expect(data.stats).toBeDefined();
+    expect(data.stats.beforeCount).toBeGreaterThan(0);
   });
 
   it('GET /unknown returns 404', async () => {

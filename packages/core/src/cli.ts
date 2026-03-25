@@ -19,6 +19,7 @@ function printHelp() {
     stats      Agent attribution stats
     audit      Show repair audit log
     serve      Start REST API server
+    dream      Run Gene Dream consolidation
     help       Show this help
 
   Examples:
@@ -146,6 +147,32 @@ function agentStats(agentId: string) {
         console.log('');
       }
       engine.getGeneMap().close();
+      break;
+    }
+    case 'dream': {
+      const { GeneDream } = await import('./engine/dream.js');
+      const dreamEngine = createEngine({ mode: 'observe', agentId: 'cli', geneMapPath: ':memory:' } as WrapOptions);
+      const gd = new GeneDream(dreamEngine.getGeneMap(), {
+        minGenes: 1, minNewRepairs: 0, minHoursSinceLastDream: 0,
+        onDream: (e) => {
+          const icons: Record<string, string> = { start: '🌙', cluster: '📊', prune: '✂️', consolidate: '🔗', enrich: '✨', reindex: '📇', complete: '✅' };
+          console.log(`  ${icons[e.stage] || '·'} ${e.stage}${e.detail ? ': ' + e.detail : ''}`);
+        },
+      });
+      console.log('\n  ╔═══════════════════════════════╗');
+      console.log('  ║  GENE DREAM CYCLE             ║');
+      console.log('  ╚═══════════════════════════════╝\n');
+      try {
+        const stats = await gd.dream(true);
+        console.log(`\n  Dream complete:`);
+        console.log(`    Clusters:      ${stats.clustersFound}`);
+        console.log(`    Pruned:        ${stats.genesPruned}`);
+        console.log(`    Consolidated:  ${stats.genesConsolidated}`);
+        console.log(`    Enriched:      ${stats.genesEnriched}`);
+        console.log(`    Before→After:  ${stats.beforeCount} → ${stats.afterCount}`);
+        console.log(`    Duration:      ${stats.durationMs}ms\n`);
+      } catch (e: any) { console.log(`  ✗ ${e.message}\n`); }
+      dreamEngine.getGeneMap().close();
       break;
     }
     case 'serve': {

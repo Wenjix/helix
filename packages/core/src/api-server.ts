@@ -9,6 +9,7 @@ import { PcecEngine } from './engine/pcec.js';
 import { GeneMap } from './engine/gene-map.js';
 import { defaultAdapters } from './platforms/index.js';
 import type { HelixMode } from './engine/types.js';
+import { GeneDream } from './engine/dream.js';
 
 function mapStrategyToAction(strategy: string): string {
   const m: Record<string, string> = {
@@ -54,6 +55,10 @@ export function createApiServer(opts: ApiServerOptions = {}) {
   const geneMap = new GeneMap(geneMapPath);
   const engine = new PcecEngine(geneMap, 'api-server', { mode, llm: { provider: 'anthropic', enabled: !!(process.env.ANTHROPIC_API_KEY || process.env.HELIX_LLM_API_KEY) } } as any);
   for (const a of defaultAdapters) engine.registerAdapter(a);
+
+  const dream = new GeneDream(geneMap, {
+    onDream: (e) => { if (e.stage === 'complete') console.log(`[helix] Dream: ${JSON.stringify(e.stats)}`); },
+  });
 
   // Gene Collector database (shares the same SQLite file)
   const collectorDb = geneMap.database;
@@ -198,9 +203,21 @@ export function createApiServer(opts: ApiServerOptions = {}) {
       }
     }
 
-    // POST /dream (placeholder)
+    // POST /dream — trigger Gene Dream
     if (path === '/dream' && req.method === 'POST') {
-      return json(res, { status: 'not_implemented', message: 'Gene Dream cycle coming in next release' });
+      try {
+        const body = JSON.parse(await readBody(req));
+        const stats = await dream.dream(body.force ?? true);
+        return json(res, { success: true, stats });
+      } catch (e: any) {
+        return json(res, { error: e.message }, 400);
+      }
+    }
+
+    // GET /dream/status
+    if (path === '/dream/status' && req.method === 'GET') {
+      const check = dream.shouldDream();
+      return json(res, { ...check, lastDream: dream.lastDreamStats() });
     }
 
     // ── Gene Collector Endpoints ──

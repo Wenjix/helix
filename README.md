@@ -224,6 +224,6 @@ MIT
 
 <div align="center">
 
-**Built by [LaoMOS](https://github.com/adrianhihi)** · npm install @helix-agent/core
+**Built by [Helix](https://github.com/adrianhihi)** · npm install @helix-agent/core
 
 </div>

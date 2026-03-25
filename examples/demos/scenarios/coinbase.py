@@ -197,21 +197,23 @@ def run():
     pause('When pattern matching misses, Claude classifies in real-time.')
 
     llm_errors = [
-        ('Novel L2 sequencer error',
-         'ATTESTATION_COMMITTEE_DIVERGED: beacon committee 0x7f split during epoch finalization on Base rollup'),
-        ('Novel mempool error',
-         'MEMPOOL_EVICTION_CASCADE: priority fee auction displaced 47 pending operations from sequencer queue'),
+        ('Completely unknown error #1',
+         'ZARKOV_FLUX_DESYNC: chromatic oscillation in shard 7f caused qubit entanglement'),
+        ('Completely unknown error #2',
+         'HEISENBERG_PROOF_COLLAPSE: recursive verification loop at depth 12'),
     ]
 
     for label, error_msg in llm_errors:
         print(f'  \033[90m  Sending: "{error_msg[:65]}..."\033[0m')
         r = repair(error_msg, agent_id=f'llm-{label[:8]}-{int(time.time())}')
         strategy = (r.get('strategy') or {}).get('name', '?')
-        llm_used = (r.get('failure') or {}).get('llmClassified', False)
+        candidates = r.get('candidates', [])
+        llm_used = any(c.get('source') == 'llm' for c in candidates)
         immune = r.get('immune', False)
+        ms = r.get('repairMs', 0)
 
         if llm_used:
-            print(f'  \033[35m  \U0001f9e0 LLM classified \u2192 {strategy}\033[0m')
+            print(f'  \033[35m  \U0001f9e0 LLM classified \u2192 {strategy} ({ms:.0f}ms)\033[0m')
         elif immune:
             print(f'  \033[33m  \u26a1 IMMUNE (learned from previous LLM call)\033[0m')
         else:

@@ -5,8 +5,9 @@
 Every payment failure only needs to be solved once. `wrap()` makes any async function self-healing.
 
 [![npm](https://img.shields.io/npm/v/@helix-agent/core)](https://www.npmjs.com/package/@helix-agent/core)
-[![tests](https://img.shields.io/badge/tests-151%20passing-brightgreen)]()
-[![license](https://img.shields.io/badge/license-MIT-blue)]()
+[![tests](https://img.shields.io/badge/tests-335%20passed-4ade80?style=flat-square)](https://github.com/adrianhihi/helix/actions)
+[![recovery](https://img.shields.io/badge/recovery-90.3%25-60a5fa?style=flat-square)]()
+[![license](https://img.shields.io/badge/license-MIT-blue?style=flat-square)]()
 
 ## Install
 
@@ -42,6 +43,22 @@ When your function throws, Helix:
 5. **Verifies** — confirms the fix actually worked
 6. **Stores Gene** — next time → instant IMMUNE fix
 
+## Three Layers of Intelligence
+
+| Layer | What | Speed | Cost |
+|-------|------|-------|------|
+| **Pattern Match + Gene Map** | 90% of known errors | <5ms | $0 |
+| **LLM Fallback** (Claude/GPT) | 10% unknown errors | ~1-6s | $0.001 |
+| **Gene Telemetry** | Network learns, coverage grows | Background | $0 |
+
+LLM is optional. Works without it. Enable with:
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+```
+
+When LLM classifies an unknown error, the result is cached in Gene Map. Next time → IMMUNE, no LLM, $0.
+
 ## Three Safety Modes
 
 ```typescript
@@ -52,40 +69,103 @@ wrap(fn, { mode: 'full' })     // All repairs including chain writes.
 
 ## Platform Coverage
 
-| Platform | Scenarios | Examples |
-|----------|-----------|---------|
+| Platform | Patterns | Examples |
+|----------|:--------:|---------|
+| **Coinbase CDP** | 17 | CDP API, ERC-4337, Paymaster, x402, Policy |
 | **Tempo/MPP** | 13 | nonce, session, DEX, compliance, cascade |
-| **Privy** | 7 | policy, gas sponsor, cross-chain, broadcast |
-| **Coinbase** | 8+ | CDP API, Paymaster/ERC-4337, x402 |
+| **Privy** | 7 | policy, gas sponsor, cross-chain, signing |
 | **Generic HTTP** | 3 | 429, 500, timeout |
 
-**31 scenarios. 25 real strategies. 5 platforms.**
+**31+ scenarios. 26 strategies. 4 platforms. 335 tests.**
 
-## Auto-Detect
+## Python SDK
 
-Helix auto-detects your function's parameter shape:
+Coinbase AgentKit, LangChain, CrewAI are Python. We have a native SDK:
+
+```bash
+# Option A: Docker (no Node.js needed)
+docker run -d -p 7842:7842 adrianhihi/helix-server
+pip install helix-agent-sdk
+
+# Option B: Node.js
+npx helix serve --port 7842
+pip install helix-agent-sdk
+```
+
+```python
+from helix_agent import HelixClient, helix_wrap, helix_guard
+
+# Method 1: Explicit client
+client = HelixClient(platform="coinbase")
+result = client.repair("AA25 invalid account nonce")
+
+# Method 2: Decorator (auto-retry on failure)
+@helix_wrap(platform="coinbase", max_retries=3)
+def send_payment(to, amount):
+    return agent.transfer(to, amount)
+
+# Method 3: Context manager
+with helix_guard("tempo") as guard:
+    repair = guard.repair("nonce too low")
+```
+
+PyPI: https://pypi.org/project/helix-agent-sdk/
+
+## Docker
+
+```bash
+docker run -d -p 7842:7842 adrianhihi/helix-server
+```
+
+Or with docker-compose:
+```bash
+docker-compose up -d
+```
+
+## REST API
+
+```bash
+npx helix serve --port 7842 --mode observe
+```
+
+```bash
+curl -X POST http://localhost:7842/repair \
+  -H 'Content-Type: application/json' \
+  -d '{"error":"AA25 invalid account nonce","platform":"coinbase"}'
+```
+
+Endpoints: `POST /repair` · `GET /health` · `GET /genes` · `GET /status`
+
+## Gene Telemetry
+
+Every LLM discovery is optionally reported (anonymized) to improve seed genes for all users:
 
 ```typescript
-// viem transaction → auto-injects corrected nonce/gas
-wrap(sendTx, { mode: 'auto' })
-
-// HTTP fetch → auto-retries with backoff
-wrap(fetch, { mode: 'auto' })
-
-// No parameterModifier needed. Helix figures it out.
+wrap(fn, {
+  mode: 'auto',
+  llm: { provider: 'anthropic', enabled: true },
+  telemetry: { enabled: true },
+});
 ```
+
+Opt-in only. No addresses, keys, or amounts sent. Default: disabled.
 
 ## Key Features
 
-- **Gene Map** — SQLite database of proven repairs. Q-value RL scoring. Seed genes for day-1 immunity
+- **Gene Map** — SQLite database of proven repairs. Bayesian Q ± σ scoring. Seed genes for day-1 immunity
 - **Cross-Platform Immunity** — Fix learned on Tempo auto-heals same error on Coinbase
-- **viem Integration** — Real chain reads/writes via publicClient + walletClient
-- **DEX Swap** — Uniswap V3 on Base/Ethereum (swap_currency, split_swap)
-- **Safety** — Kill switch, cost ceiling, allowlist/blocklist, Zod validation
-- **Idempotency** — repair_id prevents double execution
-- **Root Cause Analysis** — 13 root cause mappings (MAST paper)
-- **Failure Attribution** — Track which agent, which step fails most
-- **simulate()** — Dry-run diagnosis for CI testing
+- **Adaptive Learning Rate** — New genes learn fast, old genes stay stable
+- **Strategy Chains** — Multi-step repairs [refresh_nonce → speed_up_transaction]
+- **Predictive Failure Graph** — Predicts next error, preloads Gene into cache
+- **Context-Aware Lookup** — Q-value adjusted by gas price, time, chain ID
+- **Error Embedding** — 28 known signatures, fuzzy matching when exact match fails
+- **A/B Testing** — Controlled strategy experiments, 90/10 traffic split
+- **Gene Registry** — Push/pull shared knowledge across instances
+- **OpenTelemetry** — Optional tracing spans + metrics
+- **Audit Log** — Every repair recorded, exportable for compliance
+- **Business Verify** — Custom verification callbacks
+- **Failure Learning** — Auto-distills defensive genes after repeated failures
+- **Multi-Dimensional Scoring** — 6-dimension Q-value (accuracy, cost, latency, safety, transferability, reliability)
 
 ## API
 
@@ -97,6 +177,8 @@ const safeFn = wrap(fn, {
   mode: 'auto',
   agentId: 'my-agent',
   maxRepairCostUsd: 1.00,
+  verify: (result, args) => result.amount === args[0].amount,
+  otel: { tracer, meter },
   onRepair: (result) => console.log(result.winner?.strategy),
 });
 
@@ -111,25 +193,20 @@ const diagnosis = simulate({ error: 'AA25 invalid account nonce' });
 ## CLI
 
 ```bash
-npx helix status                           # Gene Map health
-npx helix simulate "AA25 invalid nonce"    # Dry-run diagnosis
-npx helix gc                               # Garbage collection
-npx helix stats my-agent                   # Agent attribution
+npx helix serve --port 7842 --mode observe  # REST API server
+npx helix status                             # Gene Map health
+npx helix simulate "AA25 invalid nonce"      # Dry-run diagnosis
+npx helix audit                              # Repair audit log
+npx helix gc                                 # Garbage collection
+npx helix stats my-agent                     # Agent attribution
 ```
-
-## Verified on Real Chain
-
-5 real transaction hashes on Base Sepolia (testnet):
-- Nonce auto-repair via `wrap()` → corrected nonce → tx confirmed
-- HTTP 429 → `backoff_retry` → waited 2s → retried → success
-- All verifiable on [sepolia.basescan.org](https://sepolia.basescan.org)
 
 ## Documentation
 
-- [User Runbook](https://github.com/adrianhihi/helix/blob/main/docs/RUNBOOK.md) — Complete guide from install to production
 - [GitHub](https://github.com/adrianhihi/helix) — Source, examples, dashboard
+- [User Runbook](https://github.com/adrianhihi/helix/blob/main/docs/RUNBOOK.md) — Install to production
+- [Benchmark](https://github.com/adrianhihi/helix/blob/main/docs/benchmark.md) — 90.3% recovery rate
 - [CONTRIBUTING](https://github.com/adrianhihi/helix/blob/main/CONTRIBUTING.md) — How to contribute
-- [STRATEGIES](https://github.com/adrianhihi/helix/blob/main/STRATEGIES.md) — All 26 strategies with implementation status
 
 ## License
 

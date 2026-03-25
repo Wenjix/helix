@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.1] - 2026-03-25
+
+### Docs
+- Updated npm README with Python SDK, Docker, LLM, Gene Telemetry, REST API sections
+- Updated platform coverage (Coinbase: 17 patterns)
+- Updated test counts (335 total)
+
 ## [1.8.0] - 2026-03-25
 
 ### Features

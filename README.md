@@ -156,6 +156,26 @@ python3 examples/demos/run.py v17       # v1.7 features
 └─────────────────────────────────────────┘
 ```
 
+## Python SDK
+
+```bash
+# Start Helix server
+docker run -d -p 7842:7842 adrianhihi/helix-server
+
+# Install Python SDK
+pip install helix-agent-sdk
+```
+
+```python
+from helix_agent import HelixClient
+
+client = HelixClient(platform="coinbase")
+result = client.repair("AA25 invalid account nonce")
+print(f"Strategy: {result.strategy}, Immune: {result.immune}")
+```
+
+Also available: `@helix_wrap` decorator and `helix_guard` context manager. See [python/README.md](python/README.md).
+
 ## Vision
 
 Helix is a **vertical agent for payment reliability** — a "wrapper with a brain" that deeply integrates into agent payment workflows.

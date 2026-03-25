@@ -8,7 +8,13 @@ Python SDK for [Helix](https://github.com/adrianhihi/helix) — self-healing inf
 pip install helix-agent-sdk
 ```
 
-Requires a running Helix server:
+### Option A: Docker (recommended)
+
+```bash
+docker run -d -p 7842:7842 adrianhihi/helix-server
+```
+
+### Option B: Node.js
 
 ```bash
 npm install -g @helix-agent/core

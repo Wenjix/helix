@@ -150,7 +150,7 @@ function agentStats(agentId: string) {
     }
     case 'serve': {
       const portIdx = process.argv.indexOf('--port');
-      const port = portIdx !== -1 ? parseInt(process.argv[portIdx + 1]) : 7842;
+      const port = portIdx !== -1 ? parseInt(process.argv[portIdx + 1]) || 7842 : parseInt(process.env.PORT || '') || 7842;
       const modeIdx = process.argv.indexOf('--mode');
       const mode = modeIdx !== -1 ? process.argv[modeIdx + 1] as 'observe' | 'auto' | 'full' : 'observe';
       const { createApiServer } = await import('./api-server.js');

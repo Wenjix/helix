@@ -2,4 +2,4 @@
 buildCommand = "npm ci && npm run build -w packages/core"
 
 [deploy]
-startCommand = "node packages/core/dist/cli.js serve --port ${PORT:-7842} --mode observe"
+startCommand = "node packages/core/dist/cli.js serve --mode observe"

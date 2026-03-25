@@ -24,6 +24,7 @@ SCENARIOS = {
     "privy": "scenarios.privy",
     "mpp": "scenarios.mpp",
     "v17": "scenarios.v17",
+    "coinbase": "scenarios.coinbase",
 }
 
 

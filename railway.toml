@@ -1,5 +1,5 @@
 [build]
-buildCommand = "npm ci && npm run build -w packages/core && npx tsc -p packages/api/tsconfig.json"
+buildCommand = "npm ci && npm run build -w packages/core"
 
 [deploy]
-startCommand = "node packages/api/dist/server.js"
+startCommand = "node packages/core/dist/cli.js serve --port ${PORT:-7842} --mode observe"

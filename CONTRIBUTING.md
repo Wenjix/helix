@@ -40,8 +40,21 @@ npm run test -- --watch   # watch mode
 3. Add seed gene in `seed-genes.ts` if common
 4. Add tests
 
+## Running Demos
+
+```bash
+# Start API server first
+npx helix serve --port 7842 --mode observe
+
+# Run demos
+python3 examples/demos/run.py general
+python3 examples/demos/run.py coinbase
+python3 examples/demos/run.py privy
+```
+
 ## Pull Requests
 
 - Branch from `main`
 - Include tests
 - One feature per PR
+- Ensure all existing tests pass (`npm run test`)

@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.6.0] - 2026-03-24
+## [1.6.1] - 2026-03-25
 
 ### Added
 - **REST API Server**: `npx helix serve` starts HTTP API for cross-language integration (Python, Go, Rust)

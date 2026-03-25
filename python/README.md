@@ -1,11 +1,11 @@
-# helix-agent
+# helix-agent-sdk
 
 Python SDK for [Helix](https://github.com/adrianhihi/helix) — self-healing infrastructure for AI agent payments.
 
 ## Install
 
 ```bash
-pip install helix-agent
+pip install helix-agent-sdk
 ```
 
 Requires a running Helix server:

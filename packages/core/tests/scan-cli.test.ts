@@ -9,7 +9,7 @@ describe('CLI scan command', () => {
     const dir = mkdtempSync(join(tmpdir(), 'helix-scan-'));
     writeFileSync(join(dir, 'clean.ts'), 'const x = 1 + 1;');
 
-    const result = execSync(`node packages/core/dist/cli.js scan ${dir}`, { encoding: 'utf-8' });
+    const result = execSync(`node dist/cli.js scan ${dir}`, { encoding: 'utf-8' });
     expect(result).toContain('No payment error patterns found');
 
     rmSync(dir, { recursive: true });
@@ -20,7 +20,7 @@ describe('CLI scan command', () => {
     writeFileSync(join(dir, 'payment.ts'), "throw new Error('nonce too low');");
 
     try {
-      execSync(`node packages/core/dist/cli.js scan ${dir}`, { encoding: 'utf-8' });
+      execSync(`node dist/cli.js scan ${dir}`, { encoding: 'utf-8' });
       expect.fail('should exit 1');
     } catch (e: any) {
       expect(e.status).toBe(1);
@@ -35,7 +35,7 @@ describe('CLI scan command', () => {
     writeFileSync(join(dir, 'pay.ts'), "throw new Error('insufficient funds');");
 
     try {
-      execSync(`node packages/core/dist/cli.js scan ${dir} --json`, { encoding: 'utf-8' });
+      execSync(`node dist/cli.js scan ${dir} --json`, { encoding: 'utf-8' });
     } catch (e: any) {
       const parsed = JSON.parse(e.stdout);
       expect(parsed.findings).toBeDefined();
@@ -50,7 +50,7 @@ describe('CLI scan command', () => {
     writeFileSync(join(dir, 'pay.ts'), "throw new Error('rate limit exceeded 429 too many');");
 
     try {
-      execSync(`node packages/core/dist/cli.js scan ${dir} --format github`, { encoding: 'utf-8' });
+      execSync(`node dist/cli.js scan ${dir} --format github`, { encoding: 'utf-8' });
     } catch (e: any) {
       expect(e.stdout).toContain('::warning');
     }

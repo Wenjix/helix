@@ -14,7 +14,7 @@ export interface Migration {
   up: (db: Database.Database) => void;
 }
 
-export const CURRENT_SCHEMA_VERSION = 4;
+export const CURRENT_SCHEMA_VERSION = 5;
 
 export const migrations: Migration[] = [
   {
@@ -54,6 +54,16 @@ export const migrations: Migration[] = [
       db.exec(`CREATE INDEX IF NOT EXISTS idx_causal_events_code ON causal_events(code, category)`);
       db.exec(`CREATE TABLE IF NOT EXISTS causal_edges (id INTEGER PRIMARY KEY AUTOINCREMENT, from_code TEXT NOT NULL, from_category TEXT NOT NULL, to_code TEXT NOT NULL, to_category TEXT NOT NULL, probability REAL DEFAULT 0, avg_delay_ms REAL DEFAULT 0, observations INTEGER DEFAULT 1, updated_at INTEGER DEFAULT (unixepoch()), UNIQUE(from_code, from_category, to_code, to_category))`);
       db.exec(`CREATE TABLE IF NOT EXISTS anti_patterns (id INTEGER PRIMARY KEY AUTOINCREMENT, failure_code TEXT NOT NULL, category TEXT NOT NULL, strategy TEXT NOT NULL, failure_reasoning TEXT, context_conditions TEXT DEFAULT '{}', observation_count INTEGER DEFAULT 1, created_at INTEGER DEFAULT (unixepoch()), UNIQUE(failure_code, category, strategy))`);
+    },
+  },
+  {
+    version: 5,
+    description: 'Meta-Learning + Conditional Genes',
+    up: (db) => {
+      db.exec(`CREATE TABLE IF NOT EXISTS meta_patterns (id INTEGER PRIMARY KEY AUTOINCREMENT, pattern_id TEXT UNIQUE NOT NULL, key_tokens TEXT NOT NULL, strategy TEXT NOT NULL, confidence REAL DEFAULT 0, example_count INTEGER DEFAULT 0, platforms TEXT DEFAULT '[]', created_at INTEGER DEFAULT (unixepoch()), updated_at INTEGER DEFAULT (unixepoch()))`);
+      const addCol = (col: string, type: string, def: string) => { try { db.exec(`ALTER TABLE genes ADD COLUMN ${col} ${type} DEFAULT ${def}`); } catch {} };
+      addCol('conditions', 'TEXT', "'{}'");
+      addCol('anti_conditions', 'TEXT', "'{}'");
     },
   },
 ];

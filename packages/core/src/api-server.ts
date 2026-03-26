@@ -268,6 +268,18 @@ export function createApiServer(opts: ApiServerOptions = {}) {
       return json(res, { total: scored.length, avgComposite: avg, genes: scored });
     }
 
+    // GET /api/meta-patterns
+    if (path === '/api/meta-patterns' && req.method === 'GET') {
+      const { MetaLearner } = await import('./engine/meta-learner.js');
+      return json(res, { patterns: new MetaLearner(geneMap.database).getPatterns() });
+    }
+
+    // POST /api/meta-learn
+    if (path === '/api/meta-learn' && req.method === 'POST') {
+      const { MetaLearner } = await import('./engine/meta-learner.js');
+      return json(res, { newPatterns: new MetaLearner(geneMap.database).learnFromGeneMap() });
+    }
+
     // GET /api/causal-graph
     if (path === '/api/causal-graph' && req.method === 'GET') {
       const { CausalGraph } = await import('./engine/causal-graph.js');

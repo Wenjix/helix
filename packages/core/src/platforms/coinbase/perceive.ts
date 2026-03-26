@@ -114,6 +114,9 @@ export function coinbasePerceive(error: Error, _context?: Record<string, unknown
   if (msg.includes('x402Version') || (msg.includes('payload') && msg.includes('version') && msg.includes('mismatch')))
     return { code: 'malformed-credential', category: 'service', severity: 'medium', platform, details: msg, timestamp: Date.now() };
 
+  if (msg.includes('x402') && msg.includes('payment'))
+    return { code: 'token-uninitialized', category: 'network', severity: 'high', platform, details: msg, timestamp: Date.now() };
+
   if (msg.includes('RPC') && (msg.includes('rate') || msg.includes('limit') || msg.includes('unavailable')))
     return { code: 'rate-limited', category: 'auth', severity: 'medium', platform, details: msg, timestamp: Date.now() };
 

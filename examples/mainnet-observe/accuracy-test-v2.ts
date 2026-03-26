@@ -180,8 +180,8 @@ const TEST_CASES: TestCase[] = [
     name: 'Tempo: DEX slippage exceeded',
     error: 'slippage tolerance exceeded',
     platform: 'tempo',
-    expectedCode: 'slippage-exceeded',
-    expectedStrategy: 'retry',
+    expectedCode: 'swap-reverted',
+    expectedStrategy: 'split_swap',
   },
   {
     name: 'Tempo: gas spike',
@@ -204,7 +204,7 @@ const TEST_CASES: TestCase[] = [
     error: 'policy violation',
     platform: 'privy',
     expectedCode: 'policy-violation',
-    expectedStrategy: 'retry',
+    expectedStrategy: 'split_transaction',
   },
   {
     name: 'Privy: gas limit exceeded',
@@ -217,8 +217,8 @@ const TEST_CASES: TestCase[] = [
     name: 'Privy: cross-chain bridge failed',
     error: 'cross-chain bridge failed',
     platform: 'privy',
-    expectedCode: 'cross-chain-failed',
-    expectedStrategy: 'retry',
+    expectedCode: 'wrong-network',
+    expectedStrategy: 'switch_network',
   },
   {
     name: 'Privy: embedded wallet locked',
@@ -248,14 +248,14 @@ const TEST_CASES: TestCase[] = [
     error: 'Internal Server Error 500',
     platform: 'generic',
     expectedCode: 'server-error',
-    expectedStrategy: 'retry',
+    expectedStrategy: 'retry_with_receipt',
   },
   {
     name: 'Generic: timeout',
     error: 'request timeout',
     platform: 'generic',
     expectedCode: 'timeout',
-    expectedStrategy: 'retry',
+    expectedStrategy: 'backoff_retry',
   },
 
   // ══ EDGE CASES ════════════════════════════════════════

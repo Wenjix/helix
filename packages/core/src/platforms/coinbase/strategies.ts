@@ -61,6 +61,12 @@ export function coinbaseConstruct(failure: FailureClassification): RepairCandida
     ];
   }
 
+  if (failure.platform === 'coinbase' && failure.code === 'server-error') {
+    return [
+      { id: 'cb_retry', strategy: 'retry', description: 'Retry after server error', estimatedCostUsd: 0, estimatedSpeedMs: 500, requirements: [], score: 0, successProbability: 0.80, platform: 'coinbase' },
+    ];
+  }
+
   if (failure.code === 'timeout' && failure.platform === 'coinbase') {
     return [
       { id: 'cb_extend_deadline', strategy: 'extend_deadline', description: 'Extend userOperation deadline by 300s', estimatedCostUsd: 0, estimatedSpeedMs: 50, requirements: [], score: 0, successProbability: 0.90, platform: 'coinbase' },

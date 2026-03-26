@@ -61,6 +61,8 @@ export { MetaLearner } from './engine/meta-learner.js';
 export type { MetaPattern } from './engine/meta-learner.js';
 export { checkConditions, getConditionMultiplier, updateGeneConditions } from './engine/conditional-genes.js';
 export type { GeneCondition } from './engine/conditional-genes.js';
+export { StrategyGenerator } from './engine/strategy-generator.js';
+export type { StrategyGap, GeneratedStrategy, ValidationResult } from './engine/strategy-generator.js';
 export { FederatedLearner } from './engine/federated.js';
 export type { GeneGradient, FederatedResult } from './engine/federated.js';
 export { SelfPlayEngine } from './engine/self-play.js';

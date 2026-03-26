@@ -310,6 +310,27 @@ export function createApiServer(opts: ApiServerOptions = {}) {
       return json(res, { gradients: g, count: g.length });
     }
 
+    // POST /api/generate-strategies
+    if (path === '/api/generate-strategies' && req.method === 'POST') {
+      try {
+        let body: any = {}; try { body = JSON.parse(await readBody(req)); } catch {}
+        const { StrategyGenerator } = await import('./engine/strategy-generator.js');
+        return json(res, await new StrategyGenerator(geneMap.database).runCycle(Math.min(body?.max || 3, 10)));
+      } catch (e) { return json(res, { error: String(e) }, 500); }
+    }
+
+    // GET /api/generated-strategies
+    if (path === '/api/generated-strategies' && req.method === 'GET') {
+      const { StrategyGenerator } = await import('./engine/strategy-generator.js');
+      return json(res, { strategies: new StrategyGenerator(geneMap.database).getStrategies() });
+    }
+
+    // GET /api/strategy-gaps
+    if (path === '/api/strategy-gaps' && req.method === 'GET') {
+      const { StrategyGenerator } = await import('./engine/strategy-generator.js');
+      return json(res, { gaps: new StrategyGenerator(geneMap.database).analyzeGaps() });
+    }
+
     // POST /api/self-play
     if (path === '/api/self-play' && req.method === 'POST') {
       try {

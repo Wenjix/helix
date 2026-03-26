@@ -153,6 +153,22 @@ function agentStats(agentId: string) {
       engine.getGeneMap().close();
       break;
     }
+    case 'generate': case 'gen-strategy': {
+      const genEng = createEngine({ mode: 'observe', agentId: 'cli', geneMapPath: ':memory:' } as WrapOptions);
+      const { StrategyGenerator } = await import('./engine/strategy-generator.js');
+      const sg = new StrategyGenerator(genEng.getGeneMap().database);
+      const maxGen = parseInt(process.argv[3] || '3');
+      console.log(`\n  Auto Strategy Generation (max: ${maxGen})\n`);
+      const gaps = sg.analyzeGaps();
+      console.log(`  Gaps found: ${gaps.length}`);
+      for (const g of gaps.slice(0, 5)) console.log(`    ${g.failureCode} (${g.category}) — failed ${g.failureCount}x`);
+      const gr = await sg.runCycle(maxGen);
+      console.log(`\n  Generated: ${gr.generated}, Validated: ${gr.validated}, Registered: ${gr.registered}`);
+      if (gr.strategies.length > 0) console.log(`  New: ${gr.strategies.join(', ')}`);
+      console.log('');
+      genEng.getGeneMap().close();
+      break;
+    }
     case 'federated': {
       const eps = parseFloat(process.argv[3] || '1.0');
       const fEng = createEngine({ mode: 'observe', agentId: 'cli', geneMapPath: ':memory:' } as WrapOptions);

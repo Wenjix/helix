@@ -14,7 +14,7 @@ export interface Migration {
   up: (db: Database.Database) => void;
 }
 
-export const CURRENT_SCHEMA_VERSION = 8;
+export const CURRENT_SCHEMA_VERSION = 9;
 
 export const migrations: Migration[] = [
   {
@@ -89,6 +89,13 @@ export const migrations: Migration[] = [
       db.exec(`CREATE TABLE IF NOT EXISTS gradient_log (id INTEGER PRIMARY KEY AUTOINCREMENT, failure_code TEXT NOT NULL, category TEXT NOT NULL, strategy TEXT NOT NULL, q_before REAL NOT NULL, q_after REAL NOT NULL, q_delta REAL NOT NULL, recorded_at INTEGER DEFAULT (unixepoch()))`);
       db.exec(`CREATE TABLE IF NOT EXISTS global_gradients (id INTEGER PRIMARY KEY AUTOINCREMENT, failure_code TEXT NOT NULL, category TEXT NOT NULL, strategy TEXT NOT NULL, avg_q_delta REAL NOT NULL, total_samples INTEGER DEFAULT 0, agent_count INTEGER DEFAULT 0, received_at INTEGER DEFAULT (unixepoch()), applied INTEGER DEFAULT 0, UNIQUE(failure_code, category, strategy))`);
       db.exec(`CREATE TABLE IF NOT EXISTS shared_gradients (id INTEGER PRIMARY KEY AUTOINCREMENT, failure_code TEXT NOT NULL, category TEXT NOT NULL, strategy TEXT NOT NULL, q_delta REAL NOT NULL, noise REAL DEFAULT 0, sample_count INTEGER DEFAULT 0, shared_at INTEGER DEFAULT (unixepoch()))`);
+    },
+  },
+  {
+    version: 9,
+    description: 'Auto Strategy Generation',
+    up: (db) => {
+      db.exec(`CREATE TABLE IF NOT EXISTS generated_strategies (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE NOT NULL, description TEXT NOT NULL, action TEXT NOT NULL, override_keys TEXT DEFAULT '[]', override_logic TEXT NOT NULL, confidence REAL DEFAULT 0, gap_code TEXT, validation_score REAL, validated_at INTEGER, active INTEGER DEFAULT 1, created_at INTEGER DEFAULT (unixepoch()))`);
     },
   },
 ];

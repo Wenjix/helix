@@ -18,6 +18,7 @@ function printHelp() {
     gc         Gene Map garbage collection
     stats      Agent attribution stats
     audit      Show repair audit log
+    scan       Scan codebase for payment error patterns
     serve      Start REST API server
     dream      Run Gene Dream consolidation
     migrate    Check and run schema migrations
@@ -149,6 +150,82 @@ function agentStats(agentId: string) {
       }
       engine.getGeneMap().close();
       break;
+    }
+    case 'scan': {
+      const targetDir = process.argv[3] || '.';
+      const isJson = process.argv.includes('--json');
+      const isGithub = process.argv.includes('--format') && process.argv[process.argv.indexOf('--format') + 1] === 'github';
+      const fs = await import('node:fs');
+      const path = await import('node:path');
+
+      const PATTERNS = [
+        { re: /AA2[0-9]\b/g, desc: 'ERC-4337 error code' },
+        { re: /AA1[0-3]\b/g, desc: 'ERC-4337 validation error' },
+        { re: /nonce\s*(too\s*low|mismatch|invalid|expired|desync)/gi, desc: 'Nonce conflict' },
+        { re: /gas\s*(exceed|spike|estimation\s*failed|too\s*(low|high)|underpriced)/gi, desc: 'Gas error' },
+        { re: /rate\s*limit|429.*too\s*many/gi, desc: 'Rate limiting' },
+        { re: /insufficient\s*(funds|balance|USDC|ETH)/gi, desc: 'Insufficient balance' },
+        { re: /EXECUTION_REVERTED|execution\s+reverted/gi, desc: 'Transaction revert' },
+        { re: /paymaster\s*(deposit|balance|rejected|error|signature)/gi, desc: 'Paymaster error' },
+        { re: /402\s*payment\s*required/gi, desc: 'Payment required (402)' },
+        { re: /session\s*(expired|timeout|invalid)/gi, desc: 'Session failure' },
+        { re: /policy\s*(violation|limit|exceeded)/gi, desc: 'Policy violation' },
+      ];
+
+      function findFiles(dir: string): string[] {
+        const results: string[] = [];
+        try {
+          for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+            if (e.name.startsWith('.') || e.name === 'node_modules' || e.name === 'dist' || e.name === '__pycache__') continue;
+            const p = path.join(dir, e.name);
+            if (e.isDirectory()) results.push(...findFiles(p));
+            else if (/\.(ts|js|tsx|jsx|py|sol|rs)$/.test(e.name)) results.push(p);
+          }
+        } catch {}
+        return results;
+      }
+
+      const files = findFiles(targetDir);
+      interface Finding { file: string; line: number; pattern: string; match: string }
+      const findings: Finding[] = [];
+      const seen = new Set<string>();
+
+      for (const file of files) {
+        try {
+          const lines = fs.readFileSync(file, 'utf-8').split('\n');
+          for (let i = 0; i < lines.length; i++) {
+            for (const { re, desc } of PATTERNS) {
+              re.lastIndex = 0;
+              let m;
+              while ((m = re.exec(lines[i])) !== null) {
+                const key = `${file}:${i + 1}:${desc}`;
+                if (!seen.has(key)) { seen.add(key); findings.push({ file: path.relative(targetDir, file), line: i + 1, pattern: desc, match: m[0].slice(0, 50) }); }
+              }
+            }
+          }
+        } catch {}
+      }
+
+      if (isJson) {
+        console.log(JSON.stringify({ scanDir: path.resolve(targetDir), filesScanned: files.length, findings, summary: { total: findings.length } }, null, 2));
+      } else if (isGithub) {
+        for (const f of findings) console.log(`::warning file=${f.file},line=${f.line}::Payment pattern: ${f.pattern} (${f.match})`);
+        console.log(`\n  Summary: ${findings.length} payment patterns found`);
+      } else {
+        console.log(`\n  Helix Payment Safety Scan`);
+        console.log(`  Scanning: ${path.resolve(targetDir)}`);
+        console.log(`  Files: ${files.length}\n`);
+        if (findings.length === 0) {
+          console.log('  ✓ No payment error patterns found.\n');
+        } else {
+          for (const f of findings) {
+            console.log(`    ${f.file}:${f.line}`);
+            console.log(`      ${f.pattern}: "${f.match}"\n`);
+          }
+          console.log(`  Summary: ${findings.length} payment patterns found\n`);
+        }
+      }
+      process.exit(findings.length > 0 ? 1 : 0);
     }
     case 'migrate': {
       const { needsMigration, runMigrations, CURRENT_SCHEMA_VERSION } = await import('./engine/migrations.js');

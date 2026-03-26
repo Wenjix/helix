@@ -1,0 +1,17 @@
+# Helix Payment Safety — GitHub Actions
+# Add to: .github/workflows/helix-scan.yml
+name: Helix Payment Safety
+on:
+  pull_request:
+    branches: [main, master]
+jobs:
+  payment-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install -g @helix-agent/core
+      - run: npx helix scan ./ --format github
+        continue-on-error: true

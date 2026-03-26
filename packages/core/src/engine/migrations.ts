@@ -14,7 +14,7 @@ export interface Migration {
   up: (db: Database.Database) => void;
 }
 
-export const CURRENT_SCHEMA_VERSION = 10;
+export const CURRENT_SCHEMA_VERSION = 11;
 
 export const migrations: Migration[] = [
   {
@@ -104,6 +104,14 @@ export const migrations: Migration[] = [
     up: (db) => {
       db.exec(`CREATE TABLE IF NOT EXISTS adaptive_weights (id INTEGER PRIMARY KEY AUTOINCREMENT, category TEXT NOT NULL, dimension TEXT NOT NULL, weight REAL NOT NULL, observations INTEGER DEFAULT 0, updated_at INTEGER DEFAULT (unixepoch()), UNIQUE(category, dimension))`);
       db.exec(`CREATE TABLE IF NOT EXISTS weight_history (id INTEGER PRIMARY KEY AUTOINCREMENT, category TEXT NOT NULL, dimension TEXT NOT NULL, old_weight REAL NOT NULL, new_weight REAL NOT NULL, reason TEXT, recorded_at INTEGER DEFAULT (unixepoch()))`);
+    },
+  },
+  {
+    version: 11,
+    description: 'Auto Adapter Discovery',
+    up: (db) => {
+      db.exec(`CREATE TABLE IF NOT EXISTS adapter_suggestions (id INTEGER PRIMARY KEY AUTOINCREMENT, platform TEXT NOT NULL, confidence REAL DEFAULT 0, reason TEXT, error_count INTEGER DEFAULT 0, top_errors TEXT DEFAULT '[]', keywords TEXT DEFAULT '[]', status TEXT DEFAULT 'suggested', created_at INTEGER DEFAULT (unixepoch()), updated_at INTEGER DEFAULT (unixepoch()), UNIQUE(platform))`);
+      db.exec(`CREATE TABLE IF NOT EXISTS adapter_drafts (id INTEGER PRIMARY KEY AUTOINCREMENT, platform TEXT NOT NULL, patterns TEXT DEFAULT '[]', source TEXT DEFAULT 'auto-discovered', generated_at INTEGER DEFAULT (unixepoch()))`);
     },
   },
 ];

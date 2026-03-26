@@ -153,6 +153,21 @@ function agentStats(agentId: string) {
       engine.getGeneMap().close();
       break;
     }
+    case 'discover': {
+      const dEng = createEngine({ mode: 'observe', agentId: 'cli', geneMapPath: ':memory:' } as WrapOptions);
+      const { AdapterDiscovery } = await import('./engine/adapter-discovery.js');
+      const disc = new AdapterDiscovery(dEng.getGeneMap().database);
+      console.log('\n  Auto Adapter Discovery\n');
+      const dr = disc.runDiscovery();
+      console.log(`  Unknown errors: ${dr.unknownErrors}`);
+      console.log(`  Clusters: ${dr.clusters}`);
+      console.log(`  Suggestions: ${dr.suggestions.length}`);
+      for (const s of dr.suggestions) console.log(`    ${s.platform} — ${s.errorCount} errors, ${(s.confidence * 100).toFixed(0)}%`);
+      if (!dr.suggestions.length) console.log('\n  All errors covered.');
+      console.log('');
+      dEng.getGeneMap().close();
+      break;
+    }
     case 'generate': case 'gen-strategy': {
       const genEng = createEngine({ mode: 'observe', agentId: 'cli', geneMapPath: ':memory:' } as WrapOptions);
       const { StrategyGenerator } = await import('./engine/strategy-generator.js');

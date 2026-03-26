@@ -310,6 +310,28 @@ export function createApiServer(opts: ApiServerOptions = {}) {
       return json(res, { gradients: g, count: g.length });
     }
 
+    // POST /api/discover-adapters
+    if (path === '/api/discover-adapters' && req.method === 'POST') {
+      const { AdapterDiscovery } = await import('./engine/adapter-discovery.js');
+      return json(res, new AdapterDiscovery(geneMap.database).runDiscovery());
+    }
+    // GET /api/adapter-suggestions
+    if (path === '/api/adapter-suggestions' && req.method === 'GET') {
+      const { AdapterDiscovery } = await import('./engine/adapter-discovery.js');
+      return json(res, { suggestions: new AdapterDiscovery(geneMap.database).getSuggestions() });
+    }
+    // GET /api/adapter-drafts
+    if (path === '/api/adapter-drafts' && req.method === 'GET') {
+      const { AdapterDiscovery } = await import('./engine/adapter-discovery.js');
+      return json(res, { drafts: new AdapterDiscovery(geneMap.database).getDrafts() });
+    }
+    // POST /api/draft-adapter/:platform
+    if (path.startsWith('/api/draft-adapter/') && req.method === 'POST') {
+      const { AdapterDiscovery } = await import('./engine/adapter-discovery.js');
+      const d = new AdapterDiscovery(geneMap.database).draftAdapter(decodeURIComponent(path.split('/')[3]));
+      return d ? json(res, d) : json(res, { error: 'No suggestion found' }, 404);
+    }
+
     // GET /api/weights
     if (path === '/api/weights' && req.method === 'GET') {
       const { AdaptiveWeights } = await import('./engine/adaptive-weights.js');

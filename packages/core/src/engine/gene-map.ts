@@ -2,6 +2,7 @@ import Database from 'better-sqlite3';
 import type { ErrorCode, FailureCategory, GeneCapsule, Platform, RepairContext } from './types.js';
 import { SEED_GENES } from './seed-genes.js';
 import { GenePredictiveGraph } from './gene-predict.js';
+import { runMigrations, needsMigration } from './migrations.js';
 import { simplifyContext, getContextArray, contextSimilarity } from './gene-context.js';
 
 function parseRow(row: Record<string, unknown>): GeneCapsule {
@@ -85,6 +86,11 @@ export class GeneMap {
   constructor(dbPath: string = ':memory:') {
     this.db = new Database(dbPath);
     this.db.pragma('journal_mode = WAL');
+    const mcheck = needsMigration(this.db);
+    if (mcheck.needed) {
+      const applied = runMigrations(this.db, { decayOnMajorBump: true });
+      if (applied.length > 0) console.log(`[helix] Gene Map migrated: v${mcheck.currentVersion} → v${mcheck.targetVersion}`);
+    }
     this.ensureSchema();
     this.prepareStatements();
     this.predict = new GenePredictiveGraph(this.db, this.stmtLookup, this.cache, this.cacheKey.bind(this));
@@ -99,6 +105,7 @@ export class GeneMap {
     const row = this.db.prepare('SELECT version FROM schema_version ORDER BY version DESC LIMIT 1').get() as { version: number } | undefined;
     const current = row?.version ?? 0;
     if (current < GeneMap.SCHEMA_VERSION) this.migrate(current);
+    this.db.exec(`CREATE TABLE IF NOT EXISTS gene_meta (key TEXT PRIMARY KEY, value TEXT)`);
     this.db.exec(`CREATE TABLE IF NOT EXISTS repair_audit (id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp INTEGER NOT NULL, agent_id TEXT, error_message TEXT, failure_code TEXT, failure_category TEXT, strategy TEXT, immune INTEGER DEFAULT 0, success INTEGER DEFAULT 0, verify_passed INTEGER DEFAULT 1, mode TEXT, duration_ms INTEGER, q_before REAL, q_after REAL, overrides TEXT, chain_steps TEXT, predictions TEXT, created_at DATETIME DEFAULT (datetime('now')))`);
   }
 

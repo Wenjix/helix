@@ -598,7 +598,7 @@ export class PcecEngine {
       // Meta-learning: learn patterns from successful repair
       this.metaLearner.learnPattern(error.message);
       // Adaptive weights: update dimension weights based on outcome
-      this.adaptiveWeights.update(failure.category, scores.dimensions, true);
+      this.adaptiveWeights.update(failure.category, { ...scores.dimensions, cost: scores.dimensions.costEfficiency } as any, true);
 
       bus.emit('gene', this.agentId, {
         code: failure.code, category: failure.category,
@@ -698,7 +698,7 @@ export class PcecEngine {
     // Adaptive weights: update on failure
     try {
       const failScores = computeRepairScore({ perceiveSource: 'adapter', costUsd: winner.estimatedCostUsd, repairMs: totalMs, mode });
-      this.adaptiveWeights.update(failure.category, failScores.dimensions, false);
+      this.adaptiveWeights.update(failure.category, { ...failScores.dimensions, cost: failScores.dimensions.costEfficiency } as any, false);
     } catch {}
 
     this.otel.endRepairSpan(span, { success: false, immune: false, strategy: winner.strategy, code: failure.code, category: failure.category, totalMs });

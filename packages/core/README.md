@@ -76,7 +76,7 @@ wrap(fn, { mode: 'full' })     // All repairs including chain writes.
 | **Privy** | 7 | policy, gas sponsor, cross-chain, signing |
 | **Generic HTTP** | 3 | 429, 500, timeout |
 
-**31+ scenarios. 26 strategies. 4 platforms. 335 tests.**
+**31+ scenarios. 26 strategies. 4 platforms. 343+ tests.**
 
 ## Python SDK
 
@@ -134,7 +134,7 @@ curl -X POST http://localhost:7842/repair \
   -d '{"error":"AA25 invalid account nonce","platform":"coinbase"}'
 ```
 
-Endpoints: `POST /repair` · `GET /health` · `GET /genes` · `GET /status`
+Endpoints: `POST /repair` · `GET /health` · `GET /genes` · `GET /status` · `GET /schema` · `POST /dream`
 
 ## Gene Telemetry
 
@@ -166,6 +166,8 @@ Opt-in only. No addresses, keys, or amounts sent. Default: disabled.
 - **Business Verify** — Custom verification callbacks
 - **Failure Learning** — Auto-distills defensive genes after repeated failures
 - **Multi-Dimensional Scoring** — 6-dimension Q-value (accuracy, cost, latency, safety, transferability, reliability)
+- **Gene Dream** — Background memory consolidation (cluster, prune, consolidate, enrich, reindex)
+- **Data Versioning** — Schema migrations with Q-value decay on major upgrades
 
 ## API
 
@@ -199,6 +201,8 @@ npx helix simulate "AA25 invalid nonce"      # Dry-run diagnosis
 npx helix audit                              # Repair audit log
 npx helix gc                                 # Garbage collection
 npx helix stats my-agent                     # Agent attribution
+npx helix dream                              # Gene Dream consolidation
+npx helix migrate                            # Schema migration check
 ```
 
 ## Documentation

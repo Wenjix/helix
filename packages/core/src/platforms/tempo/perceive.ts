@@ -10,7 +10,7 @@ export function tempoPerceive(error: Error, _context?: Record<string, unknown>):
   if (errorCode === 'payment-insufficient' || msg.includes('insufficient balance') || msg.includes('insufficient funds') || msg.includes('payment-insufficient'))
     return { code: 'payment-insufficient', category: 'balance', severity: 'high', platform: 'tempo', details: msg, timestamp: Date.now() };
 
-  if (errorCode === 'invalid-challenge' || (msg.includes('session') && (msg.includes('expired') || msg.includes('invalid-challenge'))))
+  if (errorCode === 'invalid-challenge' || (msg.includes('session') && (msg.includes('expired') || msg.includes('invalid-challenge') || msg.includes('invalid'))))
     return { code: 'invalid-challenge', category: 'session', severity: 'medium', platform: 'tempo', details: msg, timestamp: Date.now() };
 
   if (errorCode === 'method-unsupported' || msg.includes('method-unsupported') || (msg.includes('requires') && msg.includes('payment')))
@@ -42,6 +42,13 @@ export function tempoPerceive(error: Error, _context?: Record<string, unknown>):
 
   if (msg.includes('sponsor') && msg.includes('exhausted'))
     return { code: 'payment-insufficient', category: 'balance', severity: 'high', platform: 'tempo', details: msg, timestamp: Date.now() };
+
+  // Gas spike
+  if (msg.includes('gas') && msg.includes('spike'))
+    return { code: 'gas-spike', category: 'gas', severity: 'high', platform: 'tempo', details: msg, timestamp: Date.now() };
+
+  if (msg.includes('gas') && msg.includes('estimation') && msg.includes('failed'))
+    return { code: 'gas-estimation-failed', category: 'gas', severity: 'high', platform: 'tempo', details: msg, timestamp: Date.now() };
 
   // TIP20 Uninitialized
   if (msg.includes('Uninitialized') || msg.includes('token error'))

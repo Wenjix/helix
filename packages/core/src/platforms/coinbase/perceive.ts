@@ -45,15 +45,18 @@ export function coinbasePerceive(error: Error, _context?: Record<string, unknown
   // ── Gas / Fee Errors ──
 
   if (msg.includes('underpriced') || msg.includes('replacement transaction'))
-    return { code: 'gas-underpriced' as any, category: 'gas' as any, severity: 'high', platform, details: msg, timestamp: Date.now() };
+    return { code: 'gas-underpriced', category: 'gas', severity: 'high', platform, details: msg, timestamp: Date.now() };
 
   if (msg.toLowerCase().includes('gas') && (msg.toLowerCase().includes('too low') || msg.toLowerCase().includes('intrinsic gas')))
-    return { code: 'gas-too-low' as any, category: 'gas' as any, severity: 'high', platform, details: msg, timestamp: Date.now() };
+    return { code: 'gas-too-low', category: 'gas', severity: 'high', platform, details: msg, timestamp: Date.now() };
 
   // ── Paymaster / Bundler / ERC-4337 Errors ──
 
+  if (msg.includes('paymaster') && (msg.includes('deposit') || msg.includes('balance')) && (msg.includes('low') || msg.includes('insufficient')))
+    return { code: 'paymaster-balance-low', category: 'balance', severity: 'high', platform, details: msg, timestamp: Date.now() };
+
   if (msg.includes('GAS_ESTIMATION_ERROR') || msg.includes('-32004') || msg.includes('Gas estimation failed'))
-    return { code: 'payment-insufficient', category: 'balance', severity: 'high', platform, details: msg, timestamp: Date.now() };
+    return { code: 'gas-estimation-failed', category: 'gas', severity: 'high', platform, details: msg, timestamp: Date.now() };
 
   if (msg.includes('AA25') || msg.includes('Invalid account nonce'))
     return { code: 'verification-failed', category: 'signature', severity: 'high', platform, details: msg, timestamp: Date.now() };

@@ -18,6 +18,13 @@ export type ErrorCode =
   | 'rate-limited'
   | 'server-error'
   | 'timeout'
+  | 'gas-estimation-failed'
+  | 'gas-underpriced'
+  | 'gas-too-low'
+  | 'gas-spike'
+  | 'gas-limit-exceeded'
+  | 'paymaster-balance-low'
+  | 'wallet-locked'
   | 'unknown';
 
 // ── Failure Categories ──────────────────────────────────────────
@@ -36,6 +43,7 @@ export type FailureCategory =
   | 'network'
   | 'policy'
   | 'auth'
+  | 'gas'
   | 'unknown';
 
 export type Severity = 'low' | 'medium' | 'high' | 'critical';

@@ -33,6 +33,18 @@ export function privyConstruct(failure: FailureClassification): RepairCandidate[
     ];
   }
 
+  if (failure.platform === 'privy' && failure.code === 'wallet-locked') {
+    return [
+      { id: 'privy_renew_wallet', strategy: 'renew_session', description: 'Re-authenticate to unlock embedded wallet', estimatedCostUsd: 0, estimatedSpeedMs: 200, requirements: [], score: 0, successProbability: 0.85, platform: 'privy' },
+    ];
+  }
+
+  if (failure.platform === 'privy' && failure.code === 'gas-limit-exceeded') {
+    return [
+      { id: 'privy_speed_gas', strategy: 'speed_up_transaction', description: 'Increase gas limit', estimatedCostUsd: 0.01, estimatedSpeedMs: 150, requirements: [], score: 0, successProbability: 0.84, platform: 'privy' },
+    ];
+  }
+
   // Privy broadcast failure with invalid/malformed params
   if (failure.platform === 'privy' && failure.code === 'malformed-credential') {
     return [

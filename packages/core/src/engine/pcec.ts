@@ -454,11 +454,11 @@ export class PcecEngine {
     });
 
     if (candidates.length === 0) {
-      bus.emit('error', this.agentId, { reason: 'NO_CANDIDATES', code: failure.code });
-      return makeResult({
-        failure, mode,
-        explanation: `No viable candidates. Skipped: ${skippedStrategies.join(', ') || 'none'}`,
-        skippedStrategies,
+      // Fallback: always offer at least a retry strategy
+      candidates.push({
+        id: 'fallback_retry', strategy: 'retry', description: 'Fallback retry',
+        estimatedCostUsd: 0, estimatedSpeedMs: 1000, requirements: [], score: 1,
+        successProbability: 0.5, platform: failure.platform,
       });
     }
 

@@ -44,7 +44,8 @@ describe('Coinbase perceive', () => {
   it('classifies GAS_ESTIMATION_ERROR', () => {
     const r = coinbasePerceive(new Error('GAS_ESTIMATION_ERROR (-32004): Gas estimation failed'));
     expect(r).not.toBeNull();
-    expect(r!.category).toBe('balance');
+    expect(r!.category).toBe('gas');
+    expect(r!.code).toBe('gas-estimation-failed');
   });
 
   it('classifies AA25 nonce', () => {

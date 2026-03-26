@@ -22,6 +22,14 @@ export function privyPerceive(error: Error, _context?: Record<string, unknown>):
   if (msg.includes('chain') && msg.includes('mismatch') && (msg.includes('wallet') || msg.includes('provisioned')))
     return { code: 'token-uninitialized', category: 'network', severity: 'high', platform: 'privy', details: msg, timestamp: Date.now() };
 
+  // Embedded wallet locked
+  if (msg.includes('wallet locked') || msg.includes('embedded wallet locked'))
+    return { code: 'wallet-locked', category: 'auth', severity: 'high', platform: 'privy', details: msg, timestamp: Date.now() };
+
+  // Gas limit exceeded
+  if (msg.includes('gas limit exceeded') || msg.includes('gas limit'))
+    return { code: 'gas-limit-exceeded', category: 'gas', severity: 'high', platform: 'privy', details: msg, timestamp: Date.now() };
+
   // #NEW-1: Insufficient wallet balance (not gas, actual tx value)
   if (msg.includes('insufficient funds') && msg.includes('transaction') && !msg.includes('gas'))
     return { code: 'payment-insufficient', category: 'balance', severity: 'high', platform: 'privy', details: msg, timestamp: Date.now() };

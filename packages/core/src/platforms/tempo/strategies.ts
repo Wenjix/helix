@@ -63,6 +63,10 @@ export function tempoConstruct(failure: FailureClassification): RepairCandidate[
         { id: 'bridge_tokens', strategy: 'bridge_tokens', description: 'Bridge assets from current chain to target chain', estimatedCostUsd: 0.50, estimatedSpeedMs: 5000, requirements: ['bridge_available'], score: 0, successProbability: 0.75, platform: 'tempo' },
         { id: 'switch_service_net', strategy: 'switch_service', description: 'Fall back to service on same network', estimatedCostUsd: 0, estimatedSpeedMs: 100, requirements: ['alt_service'], score: 0, successProbability: 0.80, platform: 'tempo' },
       ];
+    case 'gas':
+      return [
+        { id: 'tempo_speed_up', strategy: 'speed_up_transaction', description: 'Bump gas price to overcome spike', estimatedCostUsd: 0.01, estimatedSpeedMs: 150, requirements: [], score: 0, successProbability: 0.83, platform: 'tempo' },
+      ];
     default:
       return [];
   }

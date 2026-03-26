@@ -170,7 +170,7 @@ export function createApiServer(opts: ApiServerOptions = {}) {
         const body = JSON.parse(await readBody(req));
         const { error: errorMsg, errorType, agentId, platform, context } = body;
 
-        if (!errorMsg) {
+        if (errorMsg === undefined || errorMsg === null) {
           return json(res, { success: false, error: 'error field is required' }, 400);
         }
 

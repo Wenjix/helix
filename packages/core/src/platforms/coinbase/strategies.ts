@@ -23,7 +23,19 @@ export function coinbaseConstruct(failure: FailureClassification): RepairCandida
     ];
   }
 
-  if (failure.platform === 'coinbase' && (failure.category as string) === 'gas') {
+  if (failure.platform === 'coinbase' && failure.code === 'paymaster-balance-low') {
+    return [
+      { id: 'cb_reduce_paymaster', strategy: 'reduce_request', description: 'Reduce transaction value to fit paymaster deposit', estimatedCostUsd: 0, estimatedSpeedMs: 100, requirements: [], score: 0, successProbability: 0.80, platform: 'coinbase' },
+    ];
+  }
+
+  if (failure.platform === 'coinbase' && failure.code === 'gas-estimation-failed') {
+    return [
+      { id: 'cb_speed_est', strategy: 'speed_up_transaction', description: 'Increase gas to pass estimation', estimatedCostUsd: 0.01, estimatedSpeedMs: 150, requirements: [], score: 0, successProbability: 0.82, platform: 'coinbase' },
+    ];
+  }
+
+  if (failure.platform === 'coinbase' && failure.category === 'gas') {
     return [
       { id: 'cb_speed_up', strategy: 'speed_up_transaction', description: 'Bump gas price by 30% for faster inclusion', estimatedCostUsd: 0.01, estimatedSpeedMs: 150, requirements: [], score: 0, successProbability: 0.88, platform: 'coinbase' },
       { id: 'cb_fix_gas', strategy: 'fix_params', description: 'Auto-populate gas parameters', estimatedCostUsd: 0.01, estimatedSpeedMs: 150, requirements: [], score: 0, successProbability: 0.85, platform: 'coinbase' },

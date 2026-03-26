@@ -46,7 +46,7 @@ await wrap(agent.pay)(invoice);
 
 That's it. One line. Helix handles the rest.
 
-If this helped, please ⭐ — it helps us reach more developers.
+**If this helped, please ⭐ — it helps us reach more developers.**
 
 ---
 

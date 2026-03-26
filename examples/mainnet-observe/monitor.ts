@@ -33,7 +33,7 @@ async function getRevert(hash: string): Promise<string> {
     if (receipt.status === 'success') return '';
     try {
       const tx = await client.getTransaction({ hash: hash as `0x${string}` });
-      await client.call({ to: tx.to || undefined, data: tx.input, value: tx.value, from: tx.from, gas: tx.gas, blockNumber: receipt.blockNumber });
+      await client.call({ to: tx.to || undefined, data: tx.input, value: tx.value, account: tx.from, gas: tx.gas, blockNumber: receipt.blockNumber });
     } catch (e: any) { return e.message || e.shortMessage || 'EXECUTION_REVERTED'; }
     return 'EXECUTION_REVERTED';
   } catch (e: any) { return e.message || 'unknown'; }

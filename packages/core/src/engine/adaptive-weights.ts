@@ -29,10 +29,11 @@ export class AdaptiveWeights {
     const current = this.getWeights(category);
     const obs = this.getObs(category);
     const lr = Math.max(0.01, 0.1 / (1 + obs * 0.05));
-    const vals = DIMS.map(d => scores[d]);
+    const vals = DIMS.map(d => scores[d] ?? 0.5);
     const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+    if (isNaN(avg)) return; // guard against bad data
     const updated: any = { ...current };
-    for (const d of DIMS) { const dev = scores[d] - avg; updated[d] = current[d] + (success ? lr * dev : -lr * dev); }
+    for (const d of DIMS) { const dev = (scores[d] ?? 0.5) - avg; updated[d] = current[d] + (success ? lr * dev : -lr * dev); if (isNaN(updated[d])) updated[d] = current[d]; }
     const norm = this.normalize(updated);
     for (const d of DIMS) {
       this.db.prepare(`INSERT INTO adaptive_weights (category, dimension, weight, observations) VALUES (?,?,?,1) ON CONFLICT(category, dimension) DO UPDATE SET weight = excluded.weight, observations = observations + 1, updated_at = unixepoch()`).run(category, d, norm[d]);

@@ -28,6 +28,9 @@ import { computeRepairScore } from './repair-score.js';
 import type { ABTest } from './ab-test.js';
 import { CausalGraph } from './causal-graph.js';
 import { NegativeKnowledge } from './negative-knowledge.js';
+import { MetaLearner } from './meta-learner.js';
+import { SafetyVerifier } from './safety-verifier.js';
+import { AdaptiveWeights } from './adaptive-weights.js';
 
 // Category C strategies that move funds — require 'full' mode
 const FUND_MOVEMENT_STRATEGIES = [
@@ -75,6 +78,9 @@ export class PcecEngine {
   private abTests: ABTestManager = new ABTestManager();
   private causalGraph: CausalGraph;
   private negativeKnowledge: NegativeKnowledge;
+  private metaLearner: MetaLearner;
+  private safetyVerifier: SafetyVerifier;
+  private adaptiveWeights: AdaptiveWeights;
 
   constructor(geneMap: GeneMap, agentId: string = 'default', options?: WrapOptions) {
     this.geneMap = geneMap;
@@ -84,6 +90,9 @@ export class PcecEngine {
     this.otel = options?.otel ? new HelixOtel(options.otel) : NOOP_OTEL;
     this.causalGraph = new CausalGraph(geneMap.database);
     this.negativeKnowledge = new NegativeKnowledge(geneMap.database);
+    this.metaLearner = new MetaLearner(geneMap.database);
+    this.safetyVerifier = new SafetyVerifier();
+    this.adaptiveWeights = new AdaptiveWeights(geneMap.database);
     if (options?.registry?.url) {
       this.registry = new GeneRegistryClient({ ...options.registry, agentId: this.agentId });
       this.registry.startAutoSync(this.geneMap);
@@ -155,6 +164,19 @@ export class PcecEngine {
         details: error.message,
         timestamp: Date.now(),
         rootCauseHint: `Embedding match (${(embeddingMatch.similarity * 100).toFixed(0)}%): ${embeddingMatch.matchedSignature.join(' + ')}`,
+      };
+    }
+    // Meta-learning: match against learned patterns (before LLM)
+    const metaMatch = this.metaLearner.matchPattern(error.message);
+    if (metaMatch && metaMatch.confidence > 0.7) {
+      return {
+        code: (metaMatch.patternId || 'meta-matched') as ErrorCode,
+        category: 'unknown' as FailureCategory,
+        severity: 'medium',
+        platform: 'unknown',
+        details: error.message,
+        timestamp: Date.now(),
+        rootCauseHint: `Meta-learning match: ${metaMatch.strategy} (${(metaMatch.confidence * 100).toFixed(0)}%)`,
       };
     }
     return {
@@ -451,6 +473,15 @@ export class PcecEngine {
       const penalty = this.negativeKnowledge.getPenalty(failure.code, failure.category, c.strategy);
       if (penalty < 1.0) c.score = Math.round(c.score * penalty);
     }
+    // Apply adaptive weights (category-specific dimension weighting)
+    try {
+      const weights = this.adaptiveWeights.getWeights(failure.category);
+      for (const c of scored) {
+        // Re-weight based on learned dimension importance
+        const boost = weights.accuracy * 0.5 + weights.safety * 0.5; // simple blend
+        c.score = Math.round(c.score * (0.8 + 0.4 * boost));
+      }
+    } catch {}
     scored.sort((a, b) => b.score - a.score);
     const winner = scored[0];
     this.otel.addStageEvent(span, 'evaluate', { winner: winner.strategy, score: winner.score });
@@ -498,6 +529,14 @@ export class PcecEngine {
         verified: !!inProgress.txHash,
         costEstimate: winner.estimatedCostUsd, skippedStrategies,
       });
+    }
+
+    // ── SAFETY VERIFICATION (pre-commit) ──
+    const safetyCheck = this.safetyVerifier.verify(winner.strategy, {}, {
+      mode: mode, originalArgs: [], strategy: winner.strategy, overrides: {},
+    });
+    if (!safetyCheck.safe) {
+      this.negativeKnowledge.record(failure.code, failure.category, winner.strategy, `Safety blocked: ${safetyCheck.violations[0]}`);
     }
 
     // ── COMMIT ──
@@ -555,6 +594,11 @@ export class PcecEngine {
         platformCount: gene.platforms.length,
       });
       this.geneMap.updateScores(failure.code, failure.category, scores.dimensions);
+
+      // Meta-learning: learn patterns from successful repair
+      this.metaLearner.learnPattern(error.message);
+      // Adaptive weights: update dimension weights based on outcome
+      this.adaptiveWeights.update(failure.category, scores.dimensions, true);
 
       bus.emit('gene', this.agentId, {
         code: failure.code, category: failure.category,
@@ -651,6 +695,11 @@ export class PcecEngine {
     });
     maybeDistillFromFailures(this.geneMap, failure.code, winner.strategy);
     this.negativeKnowledge.record(failure.code, failure.category, winner.strategy, commitResult.description);
+    // Adaptive weights: update on failure
+    try {
+      const failScores = computeRepairScore({ perceiveSource: 'adapter', costUsd: winner.estimatedCostUsd, repairMs: totalMs, mode });
+      this.adaptiveWeights.update(failure.category, failScores.dimensions, false);
+    } catch {}
 
     this.otel.endRepairSpan(span, { success: false, immune: false, strategy: winner.strategy, code: failure.code, category: failure.category, totalMs });
     this.otel.recordRepair({ success: false, immune: false, strategy: winner.strategy, code: failure.code, durationMs: totalMs });

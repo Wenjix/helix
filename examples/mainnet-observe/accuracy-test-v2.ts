@@ -248,7 +248,7 @@ const TEST_CASES: TestCase[] = [
     error: 'Internal Server Error 500',
     platform: 'generic',
     expectedCode: 'server-error',
-    expectedStrategy: 'retry_with_receipt',
+    expectedStrategy: 'retry',
   },
   {
     name: 'Generic: timeout',

@@ -63,7 +63,7 @@ export function coinbaseConstruct(failure: FailureClassification): RepairCandida
 
   if (failure.platform === 'coinbase' && failure.code === 'server-error') {
     return [
-      { id: 'cb_retry', strategy: 'retry', description: 'Retry after server error', estimatedCostUsd: 0, estimatedSpeedMs: 500, requirements: [], score: 0, successProbability: 0.80, platform: 'coinbase' },
+      { id: 'cb_retry', strategy: 'retry', description: 'Retry after server/connection error', estimatedCostUsd: 0, estimatedSpeedMs: 200, requirements: [], score: 0, successProbability: 0.92, platform: 'coinbase' },
     ];
   }
 

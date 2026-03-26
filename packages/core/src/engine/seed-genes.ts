@@ -5,7 +5,7 @@ export const SEED_GENES: Omit<GeneCapsule, 'id'>[] = [
   { failureCode: 'payment-insufficient', category: 'balance', strategy: 'reduce_request', params: {}, successCount: 8, avgRepairMs: 45, platforms: ['tempo', 'privy', 'coinbase'], qValue: 0.82, consecutiveFailures: 0 },
   { failureCode: 'rate-limited', category: 'auth', strategy: 'backoff_retry', params: { defaultDelayMs: 2000 }, successCount: 15, avgRepairMs: 2100, platforms: ['generic', 'coinbase'], qValue: 0.88, consecutiveFailures: 0 },
   { failureCode: 'token-uninitialized', category: 'network', strategy: 'switch_network', params: {}, successCount: 6, avgRepairMs: 210, platforms: ['tempo', 'privy', 'coinbase'], qValue: 0.80, consecutiveFailures: 0 },
-  { failureCode: 'server-error', category: 'service', strategy: 'retry_with_receipt', params: {}, successCount: 12, avgRepairMs: 1500, platforms: ['generic', 'coinbase', 'tempo'], qValue: 0.78, consecutiveFailures: 0 },
+  { failureCode: 'server-error', category: 'service', strategy: 'retry', params: {}, successCount: 12, avgRepairMs: 500, platforms: ['generic', 'coinbase', 'tempo'], qValue: 0.78, consecutiveFailures: 0 },
   { failureCode: 'timeout', category: 'service', strategy: 'backoff_retry', params: { defaultDelayMs: 3000 }, successCount: 10, avgRepairMs: 3200, platforms: ['generic', 'coinbase'], qValue: 0.75, consecutiveFailures: 0 },
   { failureCode: 'policy-violation', category: 'policy', strategy: 'split_transaction', params: {}, successCount: 5, avgRepairMs: 520, platforms: ['privy', 'coinbase'], qValue: 0.76, consecutiveFailures: 0 },
   { failureCode: 'invalid-challenge', category: 'session', strategy: 'renew_session', params: {}, successCount: 7, avgRepairMs: 150, platforms: ['tempo'], qValue: 0.82, consecutiveFailures: 0 },

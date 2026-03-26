@@ -8,12 +8,12 @@ describe('Federated Gene Learning', () => {
 
   beforeEach(() => {
     db = new Database(':memory:');
-    db.exec(`CREATE TABLE IF NOT EXISTS genes (id INTEGER PRIMARY KEY AUTOINCREMENT, failure_code TEXT, category TEXT, strategy TEXT, q_value REAL DEFAULT 0.5, platforms TEXT DEFAULT '[]', success_count INTEGER DEFAULT 5, failure_count INTEGER DEFAULT 1, consecutive_failures INTEGER DEFAULT 0, avg_repair_ms REAL DEFAULT 5, conditions TEXT DEFAULT '{}', anti_conditions TEXT DEFAULT '{}')`);
-    const ins = db.prepare('INSERT INTO genes (failure_code, category, strategy, q_value, success_count, failure_count) VALUES (?,?,?,?,?,?)');
-    ins.run('nonce-mismatch', 'nonce', 'refresh_nonce', 0.8, 10, 2);
-    ins.run('gas-spike', 'gas', 'speed_up_transaction', 0.6, 8, 4);
-    ins.run('rate-limited', 'rate-limited', 'backoff_retry', 0.9, 15, 1);
-    ins.run('rare-error', 'unknown', 'retry', 0.5, 1, 0);
+    db.exec(`CREATE TABLE IF NOT EXISTS genes (id INTEGER PRIMARY KEY AUTOINCREMENT, failure_code TEXT, category TEXT, strategy TEXT, q_value REAL DEFAULT 0.5, platforms TEXT DEFAULT '[]', success_count INTEGER DEFAULT 5, consecutive_failures INTEGER DEFAULT 0, avg_repair_ms REAL DEFAULT 5, conditions TEXT DEFAULT '{}', anti_conditions TEXT DEFAULT '{}')`);
+    const ins = db.prepare('INSERT INTO genes (failure_code, category, strategy, q_value, success_count) VALUES (?,?,?,?,?)');
+    ins.run('nonce-mismatch', 'nonce', 'refresh_nonce', 0.8, 10);
+    ins.run('gas-spike', 'gas', 'speed_up_transaction', 0.6, 8);
+    ins.run('rate-limited', 'rate-limited', 'backoff_retry', 0.9, 15);
+    ins.run('rare-error', 'unknown', 'retry', 0.5, 1);
     fl = new FederatedLearner(db, 1.0);
   });
   afterEach(() => db.close());

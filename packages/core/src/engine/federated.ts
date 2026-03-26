@@ -22,7 +22,7 @@ export class FederatedLearner {
   private laplace(b: number): number { const u = Math.random() - 0.5; return -b * Math.sign(u) * Math.log(1 - 2 * Math.abs(u)); }
 
   computeGradients(minSamples = 3): GeneGradient[] {
-    const genes = this.db.prepare('SELECT failure_code, category, strategy, q_value, success_count, COALESCE(failure_count, 0) as failure_count FROM genes WHERE success_count + COALESCE(failure_count, 0) >= ?').all(minSamples) as any[];
+    const genes = this.db.prepare('SELECT failure_code, category, strategy, q_value, success_count, consecutive_failures FROM genes WHERE success_count >= ?').all(minSamples) as any[];
     const gradients: GeneGradient[] = [];
     for (const g of genes) {
       const last = this.db.prepare('SELECT q_after FROM gradient_log WHERE failure_code = ? AND category = ? AND strategy = ? ORDER BY recorded_at DESC LIMIT 1').get(g.failure_code, g.category, g.strategy) as any;
@@ -30,7 +30,7 @@ export class FederatedLearner {
       const qDelta = g.q_value - qBefore;
       if (Math.abs(qDelta) < 0.01) continue;
       const noise = this.laplace(1.0 / this.epsilon);
-      gradients.push({ failureCode: g.failure_code, category: g.category, strategy: g.strategy, qDelta: Math.round((qDelta + noise) * 1000) / 1000, sampleCount: g.success_count + (g.failure_count || 0), noise: Math.round(noise * 1000) / 1000 });
+      gradients.push({ failureCode: g.failure_code, category: g.category, strategy: g.strategy, qDelta: Math.round((qDelta + noise) * 1000) / 1000, sampleCount: g.success_count, noise: Math.round(noise * 1000) / 1000 });
       this.db.prepare('INSERT INTO gradient_log (failure_code, category, strategy, q_before, q_after, q_delta) VALUES (?,?,?,?,?,?)').run(g.failure_code, g.category, g.strategy, qBefore, g.q_value, qDelta);
     }
     return gradients;

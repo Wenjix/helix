@@ -49,6 +49,8 @@ export function applyOverrides(args: unknown[], overrides: Record<string, unknow
         if (overrides.gasPrice !== undefined) tx.gasPrice = BigInt(overrides.gasPrice as string);
         else if (tx.gasPrice) tx.gasPrice = (BigInt(tx.gasPrice as bigint) * 130n) / 100n;
         else if (tx.maxFeePerGas) tx.maxFeePerGas = (BigInt(tx.maxFeePerGas as bigint) * 130n) / 100n;
+        // If gas limit is explicitly set too low, remove it to let the client auto-estimate
+        if (tx.gas && BigInt(tx.gas as bigint) < 21000n) delete tx.gas;
         break;
       case 'switch_network':
         if (overrides.chainId !== undefined) tx.chainId = overrides.chainId;

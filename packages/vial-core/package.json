@@ -1,5 +1,5 @@
 {
-  "name": "@vial/core",
+  "name": "@vial-agent/core",
   "version": "0.1.0",
   "description": "Self-evolving repair framework for autonomous agents",
   "main": "dist/index.js",

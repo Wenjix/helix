@@ -2,6 +2,7 @@
   "name": "helix-monorepo",
   "private": true,
   "workspaces": [
+    "packages/vial-core",
     "packages/core",
     "packages/mcp",
     "packages/api",
@@ -32,5 +33,9 @@
   "devDependencies": {
     "tsx": "^4.0.0",
     "typescript": "^5.5.0"
+  },
+  "dependencies": {
+    "@coinbase/coinbase-sdk": "^0.25.0",
+    "@privy-io/node": "^0.11.0"
   }
 }

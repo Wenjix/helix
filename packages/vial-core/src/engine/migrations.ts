@@ -1,0 +1,161 @@
+/**
+ * Gene Map Schema Migrations (Data Versioning)
+ *
+ * Standalone migration system using gene_meta table.
+ * Works alongside existing schema_version table.
+ * Each migration is idempotent (safe to run twice).
+ */
+
+import type Database from 'better-sqlite3';
+
+export interface Migration {
+  version: number;
+  description: string;
+  up: (db: Database.Database) => void;
+}
+
+export const CURRENT_SCHEMA_VERSION = 11;
+
+export const migrations: Migration[] = [
+  {
+    version: 1,
+    description: 'Base schema — genes table with Q-value RL',
+    up: (db) => {
+      db.exec(`CREATE TABLE IF NOT EXISTS genes (id INTEGER PRIMARY KEY AUTOINCREMENT, failure_code TEXT NOT NULL, category TEXT NOT NULL, strategy TEXT NOT NULL, params TEXT DEFAULT '{}', q_value REAL DEFAULT 0.5, success_count INTEGER DEFAULT 0, consecutive_failures INTEGER DEFAULT 0, avg_repair_ms REAL DEFAULT 0, platforms TEXT DEFAULT '[]', reasoning TEXT, failure_analysis TEXT DEFAULT '[]', success_context TEXT DEFAULT '{}', failure_context TEXT DEFAULT '{}', scores TEXT DEFAULT '{}', q_variance REAL DEFAULT 0.25, q_count INTEGER DEFAULT 0, last_5_rewards TEXT DEFAULT '[]', last_success_at INTEGER, last_failed_at INTEGER, created_at TEXT DEFAULT (datetime('now')), last_used_at TEXT DEFAULT (datetime('now')), UNIQUE(failure_code, category))`);
+      db.exec(`CREATE INDEX IF NOT EXISTS idx_genes_lookup ON genes(failure_code, category)`);
+    },
+  },
+  {
+    version: 2,
+    description: 'Gene Dream — gene_meta table for dream state',
+    up: (db) => {
+      db.exec(`CREATE TABLE IF NOT EXISTS gene_meta (key TEXT PRIMARY KEY, value TEXT)`);
+      const addCol = (col: string, type: string, def: string) => { try { db.exec(`ALTER TABLE genes ADD COLUMN ${col} ${type} DEFAULT ${def}`); } catch { /* exists */ } };
+      addCol('embedding', 'TEXT', 'NULL');
+      addCol('dream_cluster', 'TEXT', 'NULL');
+      addCol('is_meta_gene', 'INTEGER', '0');
+    },
+  },
+  {
+    version: 3,
+    description: 'Gene Telemetry — gene_discoveries table',
+    up: (db) => {
+      db.exec(`CREATE TABLE IF NOT EXISTS gene_discoveries (id INTEGER PRIMARY KEY AUTOINCREMENT, error_pattern TEXT NOT NULL, code TEXT NOT NULL, category TEXT NOT NULL, severity TEXT, strategy TEXT NOT NULL, q_value REAL, source TEXT, reasoning TEXT, llm_provider TEXT, platform TEXT, helix_version TEXT, reported_at INTEGER, reviewed INTEGER DEFAULT 0, approved INTEGER DEFAULT 0, report_count INTEGER DEFAULT 1, avg_q REAL, created_at INTEGER DEFAULT (unixepoch()), updated_at INTEGER DEFAULT (unixepoch()))`);
+      db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_discoveries_unique ON gene_discoveries(code, category, strategy, platform)`);
+      db.exec(`CREATE INDEX IF NOT EXISTS idx_discoveries_reviewed ON gene_discoveries(reviewed)`);
+    },
+  },
+  {
+    version: 4,
+    description: 'Causal Graph + Negative Knowledge',
+    up: (db) => {
+      db.exec(`CREATE TABLE IF NOT EXISTS causal_events (id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT NOT NULL, category TEXT NOT NULL, agent_id TEXT, timestamp INTEGER DEFAULT (unixepoch() * 1000), repaired INTEGER DEFAULT 0, strategy TEXT)`);
+      db.exec(`CREATE INDEX IF NOT EXISTS idx_causal_events_time ON causal_events(timestamp)`);
+      db.exec(`CREATE INDEX IF NOT EXISTS idx_causal_events_code ON causal_events(code, category)`);
+      db.exec(`CREATE TABLE IF NOT EXISTS causal_edges (id INTEGER PRIMARY KEY AUTOINCREMENT, from_code TEXT NOT NULL, from_category TEXT NOT NULL, to_code TEXT NOT NULL, to_category TEXT NOT NULL, probability REAL DEFAULT 0, avg_delay_ms REAL DEFAULT 0, observations INTEGER DEFAULT 1, updated_at INTEGER DEFAULT (unixepoch()), UNIQUE(from_code, from_category, to_code, to_category))`);
+      db.exec(`CREATE TABLE IF NOT EXISTS anti_patterns (id INTEGER PRIMARY KEY AUTOINCREMENT, failure_code TEXT NOT NULL, category TEXT NOT NULL, strategy TEXT NOT NULL, failure_reasoning TEXT, context_conditions TEXT DEFAULT '{}', observation_count INTEGER DEFAULT 1, created_at INTEGER DEFAULT (unixepoch()), UNIQUE(failure_code, category, strategy))`);
+    },
+  },
+  {
+    version: 5,
+    description: 'Meta-Learning + Conditional Genes',
+    up: (db) => {
+      db.exec(`CREATE TABLE IF NOT EXISTS meta_patterns (id INTEGER PRIMARY KEY AUTOINCREMENT, pattern_id TEXT UNIQUE NOT NULL, key_tokens TEXT NOT NULL, strategy TEXT NOT NULL, confidence REAL DEFAULT 0, example_count INTEGER DEFAULT 0, platforms TEXT DEFAULT '[]', created_at INTEGER DEFAULT (unixepoch()), updated_at INTEGER DEFAULT (unixepoch()))`);
+      const addCol = (col: string, type: string, def: string) => { try { db.exec(`ALTER TABLE genes ADD COLUMN ${col} ${type} DEFAULT ${def}`); } catch {} };
+      addCol('conditions', 'TEXT', "'{}'");
+      addCol('anti_conditions', 'TEXT', "'{}'");
+    },
+  },
+  {
+    version: 6,
+    description: 'Adversarial Robustness — 4-layer defense',
+    up: (db) => {
+      db.exec(`CREATE TABLE IF NOT EXISTS agent_reputation (agent_id TEXT PRIMARY KEY, reputation REAL DEFAULT 0.5, total_reports INTEGER DEFAULT 0, successful_reports INTEGER DEFAULT 0, updated_at INTEGER DEFAULT (unixepoch()))`);
+      db.exec(`CREATE TABLE IF NOT EXISTS gene_verifications (id INTEGER PRIMARY KEY AUTOINCREMENT, gene_id INTEGER NOT NULL, agent_id TEXT NOT NULL, success INTEGER NOT NULL, verified_at INTEGER DEFAULT (unixepoch()), UNIQUE(gene_id, agent_id))`);
+      db.exec(`CREATE TABLE IF NOT EXISTS gene_snapshots (id INTEGER PRIMARY KEY AUTOINCREMENT, gene_id INTEGER NOT NULL, q_value REAL NOT NULL, strategy TEXT NOT NULL, params TEXT DEFAULT '{}', snapshot_at INTEGER DEFAULT (unixepoch()))`);
+    },
+  },
+  {
+    version: 7,
+    description: 'Self-Play Evolution history',
+    up: (db) => {
+      db.exec(`CREATE TABLE IF NOT EXISTS self_play_history (id INTEGER PRIMARY KEY AUTOINCREMENT, challenge_id TEXT NOT NULL, error_message TEXT NOT NULL, platform TEXT, difficulty TEXT, mutation_type TEXT, strategy_used TEXT, repaired INTEGER DEFAULT 0, verified INTEGER DEFAULT 0, weakness TEXT, played_at INTEGER DEFAULT (unixepoch()))`);
+    },
+  },
+  {
+    version: 8,
+    description: 'Federated Gene Learning — gradient tables',
+    up: (db) => {
+      db.exec(`CREATE TABLE IF NOT EXISTS gradient_log (id INTEGER PRIMARY KEY AUTOINCREMENT, failure_code TEXT NOT NULL, category TEXT NOT NULL, strategy TEXT NOT NULL, q_before REAL NOT NULL, q_after REAL NOT NULL, q_delta REAL NOT NULL, recorded_at INTEGER DEFAULT (unixepoch()))`);
+      db.exec(`CREATE TABLE IF NOT EXISTS global_gradients (id INTEGER PRIMARY KEY AUTOINCREMENT, failure_code TEXT NOT NULL, category TEXT NOT NULL, strategy TEXT NOT NULL, avg_q_delta REAL NOT NULL, total_samples INTEGER DEFAULT 0, agent_count INTEGER DEFAULT 0, received_at INTEGER DEFAULT (unixepoch()), applied INTEGER DEFAULT 0, UNIQUE(failure_code, category, strategy))`);
+      db.exec(`CREATE TABLE IF NOT EXISTS shared_gradients (id INTEGER PRIMARY KEY AUTOINCREMENT, failure_code TEXT NOT NULL, category TEXT NOT NULL, strategy TEXT NOT NULL, q_delta REAL NOT NULL, noise REAL DEFAULT 0, sample_count INTEGER DEFAULT 0, shared_at INTEGER DEFAULT (unixepoch()))`);
+    },
+  },
+  {
+    version: 9,
+    description: 'Auto Strategy Generation',
+    up: (db) => {
+      db.exec(`CREATE TABLE IF NOT EXISTS generated_strategies (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE NOT NULL, description TEXT NOT NULL, action TEXT NOT NULL, override_keys TEXT DEFAULT '[]', override_logic TEXT NOT NULL, confidence REAL DEFAULT 0, gap_code TEXT, validation_score REAL, validated_at INTEGER, active INTEGER DEFAULT 1, created_at INTEGER DEFAULT (unixepoch()))`);
+    },
+  },
+  {
+    version: 10,
+    description: 'Adaptive Evaluate Weights',
+    up: (db) => {
+      db.exec(`CREATE TABLE IF NOT EXISTS adaptive_weights (id INTEGER PRIMARY KEY AUTOINCREMENT, category TEXT NOT NULL, dimension TEXT NOT NULL, weight REAL NOT NULL, observations INTEGER DEFAULT 0, updated_at INTEGER DEFAULT (unixepoch()), UNIQUE(category, dimension))`);
+      db.exec(`CREATE TABLE IF NOT EXISTS weight_history (id INTEGER PRIMARY KEY AUTOINCREMENT, category TEXT NOT NULL, dimension TEXT NOT NULL, old_weight REAL NOT NULL, new_weight REAL NOT NULL, reason TEXT, recorded_at INTEGER DEFAULT (unixepoch()))`);
+    },
+  },
+  {
+    version: 11,
+    description: 'Auto Adapter Discovery',
+    up: (db) => {
+      db.exec(`CREATE TABLE IF NOT EXISTS adapter_suggestions (id INTEGER PRIMARY KEY AUTOINCREMENT, platform TEXT NOT NULL, confidence REAL DEFAULT 0, reason TEXT, error_count INTEGER DEFAULT 0, top_errors TEXT DEFAULT '[]', keywords TEXT DEFAULT '[]', status TEXT DEFAULT 'suggested', created_at INTEGER DEFAULT (unixepoch()), updated_at INTEGER DEFAULT (unixepoch()), UNIQUE(platform))`);
+      db.exec(`CREATE TABLE IF NOT EXISTS adapter_drafts (id INTEGER PRIMARY KEY AUTOINCREMENT, platform TEXT NOT NULL, patterns TEXT DEFAULT '[]', source TEXT DEFAULT 'auto-discovered', generated_at INTEGER DEFAULT (unixepoch()))`);
+    },
+  },
+];
+
+export function getSchemaVersion(db: Database.Database): number {
+  try {
+    db.exec(`CREATE TABLE IF NOT EXISTS gene_meta (key TEXT PRIMARY KEY, value TEXT)`);
+    const row = db.prepare("SELECT value FROM gene_meta WHERE key = 'data_schema_version'").get() as any;
+    return row ? Number(row.value) : 0;
+  } catch { return 0; }
+}
+
+function setSchemaVersion(db: Database.Database, version: number): void {
+  db.exec(`CREATE TABLE IF NOT EXISTS gene_meta (key TEXT PRIMARY KEY, value TEXT)`);
+  db.prepare("INSERT INTO gene_meta (key, value) VALUES ('data_schema_version', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").run(String(version));
+}
+
+export function runMigrations(db: Database.Database, options?: { decayOnMajorBump?: boolean }): Migration[] {
+  const currentVersion = getSchemaVersion(db);
+  const pending = migrations.filter(m => m.version > currentVersion);
+  if (pending.length === 0) return [];
+
+  const applied: Migration[] = [];
+
+  db.transaction(() => {
+    for (const migration of pending) {
+      migration.up(db);
+      setSchemaVersion(db, migration.version);
+      applied.push(migration);
+    }
+
+    if (options?.decayOnMajorBump && pending.length >= 2) {
+      const totalDecay = Math.pow(0.9, pending.length);
+      try {
+        db.prepare('UPDATE genes SET q_value = q_value * ? WHERE q_value > 0.2').run(totalDecay);
+      } catch { /* genes table may not exist yet */ }
+    }
+  })();
+
+  return applied;
+}
+
+export function needsMigration(db: Database.Database): { needed: boolean; currentVersion: number; targetVersion: number; pendingCount: number } {
+  const currentVersion = getSchemaVersion(db);
+  const pending = migrations.filter(m => m.version > currentVersion);
+  return { needed: pending.length > 0, currentVersion, targetVersion: CURRENT_SCHEMA_VERSION, pendingCount: pending.length };
+}

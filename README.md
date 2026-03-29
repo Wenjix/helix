@@ -1,32 +1,38 @@
-<div align="center">
-
 # Helix
 
-**Self-healing infrastructure for AI agent payments**
+[![npm](https://img.shields.io/npm/v/@helix-agent/core?color=cb3837)](https://www.npmjs.com/package/@helix-agent/core)
+[![downloads](https://img.shields.io/npm/dw/@helix-agent/core?color=blue)](https://www.npmjs.com/package/@helix-agent/core)
+[![tests](https://img.shields.io/badge/tests-541%2B-brightgreen)](#)
+[![stars](https://img.shields.io/github/stars/adrianhihi/helix?style=flat&color=yellow)](https://github.com/adrianhihi/helix/stargazers)
+[![license](https://img.shields.io/badge/License-MIT-green)](LICENSE)
+[![PyPI](https://img.shields.io/pypi/v/helix-agent-sdk?color=3776AB)](https://pypi.org/project/helix-agent-sdk/)
 
-[![npm](https://img.shields.io/npm/v/@helix-agent/core?style=flat-square&color=f0a030)](https://www.npmjs.com/package/@helix-agent/core)
-[![tests](https://img.shields.io/badge/tests-489%20passed-4ade80?style=flat-square)](https://github.com/adrianhihi/helix/actions)
-[![accuracy](https://img.shields.io/badge/diagnostic%20accuracy-100%25-60a5fa?style=flat-square)]()
-[![platforms](https://img.shields.io/badge/platforms-Coinbase%20%7C%20Tempo%20%7C%20Privy-a78bfa?style=flat-square)]()
-[![license](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
+**Self-healing runtime for autonomous agents. Fix once, immune forever.**
 
-Your agent's payment fails. Helix diagnoses, repairs, and learns — automatically.  
-Not a retry wrapper. A wrapper with a brain.
+Your agent's API call failed. Helix diagnosed it, fixed it, and remembered. Next time — instant fix, zero cost.
 
-[Quick Start](#quick-start) · [How It Works](#how-it-works) · [Benchmarks](#benchmarks) · [REST API](#rest-api) · [Demo](#demo)
+```typescript
+// Before: hope for the best
+await agent.sendPayment(invoice);
 
-</div>
-
----
-
-## Demo
-
-![Helix Demo](assets/demo.gif)
-<img width="463" height="854" alt="image" src="https://github.com/user-attachments/assets/28824439-b819-4e83-85c7-4906b31e5560" />
-
-*Session expiry, nonce mismatch, gas errors — all diagnosed and repaired in <1ms.*
+// After: self-healing in one line
+const safePay = wrap(agent.sendPayment.bind(agent), { mode: 'auto' });
+await safePay(invoice);
+```
 
 ---
+**If this helped, please ⭐ — it helps us reach more developers.**
+## How It Works
+
+Helix wraps your function. When it fails, a 6-stage pipeline kicks in:
+
+```
+Error occurs → Perceive → Construct → Evaluate → Commit → Verify → Gene
+                  │           │           │          │         │       │
+            What broke?   Find fixes   Score them  Execute  Worked?  Remember
+```
+
+The fix is stored in the **Gene Map** — a SQLite knowledge base scored by reinforcement learning. Next time the same error hits any agent, it's fixed in under 1ms. No diagnosis, no LLM call, no cost.
 
 ## Quick Start
 
@@ -37,250 +43,218 @@ npm install @helix-agent/core
 ```typescript
 import { wrap } from '@helix-agent/core';
 
-// Before: hope for the best
-await agent.pay(invoice);
+// Wrap any async function — payments, API calls, anything
+const safeCall = wrap(myFunction, { mode: 'auto' });
+const result = await safeCall(args);
 
-// After: self-healing
-await wrap(agent.pay)(invoice);
+// Errors are automatically:
+//   1. Diagnosed (what type of error?)
+//   2. Fixed (modify params, retry with backoff, refresh token...)
+//   3. Remembered (next time → instant fix)
 ```
 
-That's it. One line. Helix handles the rest.
+## Demo
 
-**If this helped, please ⭐ — it helps us reach more developers.**
+![Helix Demo](assets/demo.gif)
+<img width="463" height="854" alt="image" src="https://github.com/user-attachments/assets/28824439-b819-4e83-85c7-4906b31e5560" />
 
----
+Three modes, three risk levels:
 
-## How It Works
+| Mode | Behavior | Risk |
+|------|----------|------|
+| `observe` | Diagnose only, never touch your call | Zero |
+| `auto` | Diagnose + fix params + retry | Low — only changes how, never what |
+| `full` | Auto + fund movement strategies | Medium |
 
-Helix uses **PCEC** (Perceive → Construct → Evaluate → Commit) — a biologically-inspired self-repair loop:
+## Powered by Vial
+
+Helix is built on **[Vial](packages/vial-core/)** — a generic self-healing framework for any autonomous agent. Vial provides the PCEC engine, Gene Map, and all learning modules. Helix adds payment-specific adapters on top.
 
 ```
-Error occurs
-    ↓
-⚡ Perceive  — 4-layer classification (adapter → embedding → LLM → unknown)
-    ↓
-🧬 Construct — Generate repair candidates from Gene Map
-    ↓
-📊 Evaluate  — Bayesian Q-value + Thompson Sampling + Adaptive Weights
-    ↓
-✅ Commit    — Safety verification → execute → verify → learn → Gene Map update
-    ↓
-Second time same error → IMMUNE in <1ms
+@vial/core              Generic self-healing engine
+  ├── PCEC Engine        6-stage repair pipeline
+  ├── Gene Map           SQLite knowledge base + RL scoring
+  ├── Self-Refine        Iterative failure refinement
+  ├── Meta-Learning      3 similar fixes → pattern → 4th is instant
+  ├── Safety Verifier    7 pre-execution constraints
+  ├── Self-Play          Autonomous error discovery
+  ├── Federated Learning Privacy-preserving distributed RL
+  └── Prompt Optimizer   LLM classification auto-improves
+
+@helix-agent/core        Payment vertical (powered by Vial)
+  ├── Coinbase           17 error patterns (CDP, ERC-4337, x402)
+  ├── Tempo              13 error patterns (MPP, session, DEX)
+  ├── Privy              7 error patterns (embedded wallet)
+  └── Generic            3 error patterns (HTTP)
+
+@vial/adapter-api        API vertical (powered by Vial)
+  ├── Rate limits        429, throttle
+  ├── Server errors      500, 502, 503, 504
+  ├── Timeouts           ETIMEDOUT, socket, gateway
+  ├── Connection         ECONNREFUSED, ECONNRESET, DNS
+  ├── Auth               401, 403, expired token
+  └── Client             400, 413, 422, parse errors
 ```
 
-The **Gene Map** remembers every repair. Agent A's failure becomes Agent B's immunity.
+**Build your own adapter** — implement the `PlatformAdapter` interface for any domain:
 
-### Three Layers of Intelligence
+```typescript
+import { wrap } from '@vial/core';
+import type { PlatformAdapter } from '@vial/core';
 
-| Layer | What | Speed | Cost |
-|-------|------|-------|------|
-| Pattern Match + Gene Map | 90% of errors | <5ms | $0 |
-| LLM Fallback (Claude/GPT) | 10% unknown errors | ~1-6s | $0.001 |
-| Gene Telemetry | Network learns, coverage grows | Background | $0 |
+const myAdapter: PlatformAdapter = {
+  name: 'my-service',
+  perceive(error) {
+    if (error.message.includes('rate limit'))
+      return { code: 'rate-limited', category: 'throttle', strategy: 'backoff_retry' };
+    return null;
+  },
+  getPatterns() { return [/* ... */]; },
+};
 
----
+const safeCall = wrap(myFunction, { adapter: myAdapter, mode: 'auto' });
+```
 
-## Benchmarks
+## What Makes This Different
 
-Validated on Base mainnet with real transaction failures. 32 test cases across Coinbase, Tempo, Privy, and Generic adapters — covering nonce conflicts, gas errors, ERC-4337/AA failures, session expiry, DEX slippage, rate limits, and edge cases.
+| | Sentry/Datadog | Simple retry | Helix |
+|--|----------------|-------------|-------|
+| Detects errors | ✅ | ❌ | ✅ |
+| Fixes errors | ❌ | ⚠️ blind retry | ✅ smart fix |
+| Learns from fixes | ❌ | ❌ | ✅ Gene Map |
+| Cross-agent learning | ❌ | ❌ | ✅ Federated |
+| Safety constraints | N/A | ❌ | ✅ 7 checks |
 
-| Approach | Recovery Rate | Notes |
-|----------|:------------:|-------|
-| Naive Retry | 22.6% | Same retry for all errors |
-| Error-Specific | 67.7% | Manual error handling |
-| **Helix PCEC** | **90.3%** | Auto-diagnosis + strategy selection |
+Sentry tells you something broke. **Helix fixes it.**
 
-| Platform | Diagnostic Accuracy | Test Cases |
-|----------|:-------------------:|:----------:|
-| Coinbase CDP | 100% | 17/17 |
-| Tempo MPP | 100% | 7/7 |
-| Privy | 100% | 5/5 |
-| Generic | 100% | 3/3 |
-| **Overall** | **100%** | **32/32** |
+## Installation
 
----
-
-## Platform Coverage
-
-| Platform | Patterns | Coverage | Strategies |
-|----------|:--------:|:--------:|:----------:|
-| **Coinbase CDP** | 25+ | ERC-4337, Paymaster, x402, AA errors, gas | 8 unique |
-| **Tempo MPP** | 13 | Session, nonce, gas spike, DEX slippage, RPC | 6 unique |
-| **Privy** | 7 | Embedded wallet, signing, gas sponsor, policy | 5 unique |
-| **Stripe** | 5 | Payment intents, webhooks | 4 unique |
-| **Generic** | 10 | HTTP, timeout, rate limit | 4 unique |
-
----
-
-## REST API
-
-Helix runs as a sidecar. Any language can use it:
-
+**TypeScript/JavaScript:**
 ```bash
-# Start server
-npx helix serve --port 7842 --mode observe
-
-# Send error for diagnosis
-curl -X POST http://localhost:7842/repair \
-  -H "Content-Type: application/json" \
-  -d '{"error":"nonce mismatch: expected 0, got 50","platform":"tempo"}'
+npm install @helix-agent/core
 ```
 
-```json
-{
-  "success": true,
-  "failure": { "code": "verification-failed", "category": "signature", "severity": "high" },
-  "strategy": { "name": "refresh_nonce", "action": "refresh_state" },
-  "repairMs": 1,
-  "immune": true,
-  "candidates": [
-    { "strategy": "refresh_nonce", "score": 87 },
-    { "strategy": "remove_and_resubmit", "score": 64 }
-  ]
-}
-```
-
-Python, Go, Rust — anything that speaks HTTP.
-
----
-
-## Docker
-
-```bash
-docker run -d -p 7842:7842 adrianhihi/helix-server
-```
-
----
-
-## Architecture
-
-```
-┌─────────────────────────────────────────┐
-│              User Objective              │
-└───────────────┬─────────────────────────┘
-                ↓
-┌─────────────────────────────────────────┐
-│     PCEC Engine (Perceive → Commit)     │
-│  ┌─────────┐ ┌──────────┐ ┌─────────┐  │
-│  │Perceive │→│Construct │→│Evaluate │  │
-│  │4-layer  │ │Gene Map  │ │Bayesian │  │
-│  │classify │ │candidates│ │Q-value  │  │
-│  └─────────┘ └──────────┘ └────┬────┘  │
-│                                ↓        │
-│                    ┌──────────────────┐  │
-│                    │ Safety Verifier  │  │
-│                    │ 7 constraints    │  │
-│                    └────────┬─────────┘  │
-│                             ↓            │
-│                          ┌─────────┐    │
-│                          │ Commit  │    │
-│                          │execute  │    │
-│                          │+verify  │    │
-│                          │+learn   │    │
-│                          └─────────┘    │
-└───────────────┬─────────────────────────┘
-                ↓
-┌─────────────────────────────────────────┐
-│            Gene Map (SQLite)            │
-│  Bayesian Q-values × 6 dimensions      │
-│  Causal repair graph                    │
-│  Negative knowledge (anti-patterns)     │
-│  Conditional genes + adaptive weights   │
-└─────────────────────────────────────────┘
-```
-
----
-
-## Python SDK
-
+**Python:**
 ```bash
 pip install helix-agent-sdk
 ```
 
-```python
-from helix_agent import HelixClient
-
-client = HelixClient(platform="coinbase")
-result = client.repair("AA25 invalid account nonce")
-print(f"Strategy: {result.strategy}, Immune: {result.immune}")
+**Docker:**
+```bash
+docker run -d -p 7842:7842 adrianhihi/helix-server
 ```
 
----
-
-## Roadmap
-
-- [x] PCEC engine + Gene Map core
-- [x] 5 platform adapters (Coinbase, Tempo, Privy, Stripe, Generic)
-- [x] REST API for cross-language integration
-- [x] Failure learning + multi-dimensional scoring (6D)
-- [x] Error embedding (28 signatures, fuzzy matching)
-- [x] Gene Dream (background memory consolidation)
-- [x] Causal Repair Graph + Negative Knowledge (Reflexion)
-- [x] Meta-Learning + Conditional Genes (ExpeL)
-- [x] Adversarial robustness (4-layer defense)
-- [x] Formal Safety Verification (7 pre-execution constraints)
-- [x] Self-Play Evolution (autonomous strategy improvement)
-- [x] Federated Gene Learning (differential privacy)
-- [x] Auto Strategy Generation (LLM + rule-based)
-- [x] Adaptive Evaluate Weights (online learning)
-- [x] Auto Adapter Discovery
-- [x] Base mainnet validation — 100% diagnostic accuracy (32/32)
-- [ ] Multi-Agent Coordination (shared Gene Map across agent fleets)
-- [ ] PostgreSQL support (enterprise-grade deployment)
-- [ ] Real-time Gene Telemetry Network (privacy-preserving, cross-org learning)
-- [ ] Stripe deep integration
-- [ ] Circle / USDC adapter
-- [ ] Solana adapter
-
----
-
-## Research Foundations
-
-| Paper | Implementation |
-|-------|----------------|
-| Reflexion (2023) | Negative Knowledge — anti-pattern memory |
-| ExpeL (2024) | Conditional Genes — context-aware scoring |
-| Voyager (2023) | Auto Strategy Generation |
-| MemRL (2026) | Gene Map Q-value scoring |
-| SAGE (2025) | PCEC Verify stage |
-
----
+**REST API:**
+```bash
+curl -X POST http://localhost:7842/repair \
+  -H 'Content-Type: application/json' \
+  -d '{"error": "nonce too low", "platform": "coinbase"}'
+```
 
 ## CLI
 
 ```bash
-npx helix serve --port 7842 --mode observe   # Start REST API server
-npx helix simulate "AA25 Invalid account nonce" # Dry-run diagnosis
-npx helix scan ./src                          # Scan codebase for payment patterns
-npx helix dream                               # Trigger Gene Dream
-npx helix self-play 10                        # Run self-play evolution rounds
-npx helix status                              # Gene Map health
+npx helix serve --port 7842          # Start server + dashboard
+npx helix scan ./src                 # Scan codebase for error patterns
+npx helix simulate "nonce too low"   # Dry-run diagnosis
+npx helix self-play 10               # Autonomous error discovery
+npx helix dream                      # Memory consolidation
+npx helix discover                   # Find adapter gaps
 ```
 
----
+## Architecture
 
-## MCP Server
+Helix includes 15 learning and safety modules, all integrated into the core PCEC pipeline:
 
-```bash
-npx @helix-agent/mcp
+**Learning** — Gene Map (RL), Meta-Learning (few-shot), Causal Graph (prediction), Negative Knowledge (anti-patterns), Adaptive Weights (auto-tuning), Self-Play (exploration), Federated Learning (distributed), Gene Dream (memory consolidation), Prompt Optimizer (LLM self-improvement), Auto Strategy Generation (creates new fixes via LLM)
+
+**Safety** — 7 pre-execution constraints (never modifies recipient or calldata), 4-layer adversarial defense (reputation, verification, anomaly detection, auto-rollback), cost ceilings, strategy allowlists
+
+**Execution** — `refresh_nonce`, `speed_up` (gas × 1.3), `reduce_request` (value ÷ 2), `backoff_retry` (1s → 2s → 4s → 8s → 16s cap), `renew_session` (callback), `split_transaction`, `remove_and_resubmit`
+
+## Self-Evolution
+
+Helix doesn't just fix errors — it gets better over time:
+
+```
+Level 1: Data Evolution
+  Every fix improves Q-values → better strategy selection
+
+Level 2: Strategy Evolution  
+  Meta-Learning spots patterns across fixes
+  Self-Play discovers errors before users hit them
+  Gene Dream consolidates knowledge during idle time
+
+Level 3: Architecture Evolution
+  Auto Strategy Generation invents new fix methods via LLM
+  Adaptive Weights auto-tunes scoring per error category
+  Auto Adapter Discovery detects when new platforms need support
 ```
 
-Tools: `helix_diagnose` · `helix_repair` · `helix_gene_status` · `helix_check_immunity`
+## Stats
 
----
+```
+541+ tests across 3 packages
+54 source files
+Schema v12 (auto-migrating)
+40+ payment error patterns
+21 API error patterns
+7 safety constraints
+12 repair strategies
+```
+
+## Roadmap
+
+- [x] **PCEC Engine** — 6-stage self-healing pipeline
+- [x] **Gene Map** — SQLite + Q-value reinforcement learning
+- [x] **Platform Adapters** — Coinbase, Tempo, Privy, Generic HTTP
+- [x] **Self-Evolution** — Meta-Learning, Self-Play, Federated, Gene Dream
+- [x] **Safety** — 7 constraints, adversarial defense, cost ceilings
+- [x] **CI/CD Integration** — `npx helix scan` for GitHub Actions
+- [x] **Vial Framework** — Generic core extracted (`@vial/core`)
+- [x] **API Adapter** — Second vertical proving generic architecture
+- [x] **Self-Refine** — Iterative failure reflection (paper: Self-Refine)
+- [x] **Prompt Optimizer** — LLM classification auto-improves (paper: DSPy)
+- [ ] **Executable Strategy Gen** — LLM generates runnable fix code (paper: DYSTIL)
+- [ ] **CI/CD Adapter** — Third vertical: deploy failures, flaky tests
+- [ ] **Gene Registry** — Shared knowledge across agents (network effect)
+- [ ] **arXiv Paper** — "Vial: A Self-Evolving Repair Framework for Autonomous Agents"
+- [ ] **PostgreSQL + pgvector** — Scale beyond SQLite
+
+## Research
+
+Helix implements ideas from these papers:
+
+| Paper | What We Took | Module |
+|-------|-------------|--------|
+| [Reflexion](https://arxiv.org/abs/2303.11366) | Verbal reinforcement from failures | Negative Knowledge |
+| [ExpeL](https://arxiv.org/abs/2308.10144) | Experience-conditioned strategy selection | Conditional Genes |
+| [Voyager](https://arxiv.org/abs/2305.16291) | Skill library that grows over time | Auto Strategy Gen |
+| [Self-Refine](https://arxiv.org/abs/2303.17651) | Iterative refinement with self-feedback | Self-Refine loop |
+| [DSPy](https://arxiv.org/abs/2310.03714) | Self-improving LLM pipelines | Prompt Optimizer |
+| [Mem0](https://arxiv.org/abs/2504.19413) | Scalable long-term memory | Gene Dream |
 
 ## Contributing
 
-We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+Contributions welcome. The easiest way to contribute is to write a new `PlatformAdapter` for a domain you care about.
+
+```bash
+git clone https://github.com/adrianhihi/helix
+cd helix
+npm install
+npm run build
+npm run test   # 541+ tests should pass
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## License
 
 MIT
 
----
+## Links
 
-<div align="center">
-
-**Built by [Helix](https://github.com/adrianhihi)** · `npm install @helix-agent/core`
-
-</div>
+- [npm: @helix-agent/core](https://www.npmjs.com/package/@helix-agent/core)
+- [PyPI: helix-agent-sdk](https://pypi.org/project/helix-agent-sdk/)
+- [Docker: adrianhihi/helix-server](https://hub.docker.com/r/adrianhihi/helix-server)
+- [awesome-mpp](https://github.com/mbeato/awesome-mpp) — Listed in the MPP ecosystem registry

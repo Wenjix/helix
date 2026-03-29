@@ -14,7 +14,7 @@ export interface Migration {
   up: (db: Database.Database) => void;
 }
 
-export const CURRENT_SCHEMA_VERSION = 11;
+export const CURRENT_SCHEMA_VERSION = 12;
 
 export const migrations: Migration[] = [
   {
@@ -112,6 +112,13 @@ export const migrations: Migration[] = [
     up: (db) => {
       db.exec(`CREATE TABLE IF NOT EXISTS adapter_suggestions (id INTEGER PRIMARY KEY AUTOINCREMENT, platform TEXT NOT NULL, confidence REAL DEFAULT 0, reason TEXT, error_count INTEGER DEFAULT 0, top_errors TEXT DEFAULT '[]', keywords TEXT DEFAULT '[]', status TEXT DEFAULT 'suggested', created_at INTEGER DEFAULT (unixepoch()), updated_at INTEGER DEFAULT (unixepoch()), UNIQUE(platform))`);
       db.exec(`CREATE TABLE IF NOT EXISTS adapter_drafts (id INTEGER PRIMARY KEY AUTOINCREMENT, platform TEXT NOT NULL, patterns TEXT DEFAULT '[]', source TEXT DEFAULT 'auto-discovered', generated_at INTEGER DEFAULT (unixepoch()))`);
+    },
+  },
+  {
+    version: 12,
+    description: 'LLM Prompt Optimization — classification tracking (Sprint V2)',
+    up: (db) => {
+      db.exec(`CREATE TABLE IF NOT EXISTS llm_classifications (id INTEGER PRIMARY KEY AUTOINCREMENT, error_message TEXT NOT NULL, predicted_code TEXT NOT NULL, predicted_category TEXT NOT NULL, predicted_strategy TEXT NOT NULL, actual_outcome TEXT DEFAULT 'unknown', repair_succeeded INTEGER, recorded_at INTEGER DEFAULT (unixepoch()))`);
     },
   },
 ];

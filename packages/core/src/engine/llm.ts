@@ -35,7 +35,7 @@ Guide:
 - 500/502/503 → server-error + service
 - malformed/invalid params → malformed-credential + service`;
 
-export async function llmClassify(errorMessage: string, config: LlmConfig): Promise<FailureClassification | null> {
+export async function llmClassify(errorMessage: string, config: LlmConfig, fewShotPrompt?: string): Promise<FailureClassification | null> {
   if (config.enabled === false) return null;
 
   const provider = config.provider ?? 'anthropic';
@@ -46,29 +46,30 @@ export async function llmClassify(errorMessage: string, config: LlmConfig): Prom
 
   // Try primary (default: Claude)
   if (primaryKey) {
-    const result = await tryLlm(errorMessage, provider, primaryKey, config.model, config.timeoutMs);
+    const result = await tryLlm(errorMessage, provider, primaryKey, config.model, config.timeoutMs, fewShotPrompt);
     if (result) return result;
   }
 
   // Fallback to the other provider
   if (fallbackKey && provider === 'anthropic') {
-    const result = await tryLlm(errorMessage, 'openai', fallbackKey, undefined, config.timeoutMs);
+    const result = await tryLlm(errorMessage, 'openai', fallbackKey, undefined, config.timeoutMs, fewShotPrompt);
     if (result) return result;
   } else if (fallbackKey && provider === 'openai') {
-    const result = await tryLlm(errorMessage, 'anthropic', fallbackKey, undefined, config.timeoutMs);
+    const result = await tryLlm(errorMessage, 'anthropic', fallbackKey, undefined, config.timeoutMs, fewShotPrompt);
     if (result) return result;
   }
 
   return null;
 }
 
-async function tryLlm(errorMessage: string, provider: 'anthropic' | 'openai', apiKey: string, model: string | undefined, timeoutMs: number | undefined): Promise<FailureClassification | null> {
+async function tryLlm(errorMessage: string, provider: 'anthropic' | 'openai', apiKey: string, model: string | undefined, timeoutMs: number | undefined, fewShotPrompt?: string): Promise<FailureClassification | null> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs ?? 8000);
   try {
+    const systemPrompt = fewShotPrompt ? SYSTEM + fewShotPrompt : SYSTEM;
     const text = provider === 'anthropic'
-      ? await callAnthropic(errorMessage, apiKey, model, ctrl.signal)
-      : await callOpenAI(errorMessage, apiKey, model, ctrl.signal);
+      ? await callAnthropic(errorMessage, apiKey, model, ctrl.signal, systemPrompt)
+      : await callOpenAI(errorMessage, apiKey, model, ctrl.signal, systemPrompt);
     clearTimeout(timer);
     const p = JSON.parse(text.trim().replace(/```json\n?|```/g, ''));
     return {
@@ -87,11 +88,11 @@ async function tryLlm(errorMessage: string, provider: 'anthropic' | 'openai', ap
   }
 }
 
-async function callAnthropic(msg: string, key: string, model: string | undefined, signal: AbortSignal): Promise<string> {
+async function callAnthropic(msg: string, key: string, model: string | undefined, signal: AbortSignal, systemPrompt = SYSTEM): Promise<string> {
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
-    body: JSON.stringify({ model: model ?? 'claude-sonnet-4-20250514', max_tokens: 150, system: SYSTEM, messages: [{ role: 'user', content: `Classify this error:\n"${msg}"` }] }),
+    body: JSON.stringify({ model: model ?? 'claude-sonnet-4-20250514', max_tokens: 150, system: systemPrompt, messages: [{ role: 'user', content: `Classify this error:\n"${msg}"` }] }),
     signal,
   });
   if (!r.ok) throw new Error(`Anthropic ${r.status}`);
@@ -99,11 +100,11 @@ async function callAnthropic(msg: string, key: string, model: string | undefined
   return d.content?.[0]?.text ?? '';
 }
 
-async function callOpenAI(msg: string, key: string, model: string | undefined, signal: AbortSignal): Promise<string> {
+async function callOpenAI(msg: string, key: string, model: string | undefined, signal: AbortSignal, systemPrompt = SYSTEM): Promise<string> {
   const r = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
-    body: JSON.stringify({ model: model ?? 'gpt-4o-mini', max_tokens: 150, temperature: 0, messages: [{ role: 'system', content: SYSTEM }, { role: 'user', content: `Classify this error:\n"${msg}"` }] }),
+    body: JSON.stringify({ model: model ?? 'gpt-4o-mini', max_tokens: 150, temperature: 0, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: `Classify this error:\n"${msg}"` }] }),
     signal,
   });
   if (!r.ok) throw new Error(`OpenAI ${r.status}`);

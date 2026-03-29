@@ -315,6 +315,16 @@ export function createApiServer(opts: ApiServerOptions = {}) {
       const { AdapterDiscovery } = await import('./engine/adapter-discovery.js');
       return json(res, new AdapterDiscovery(geneMap.database).runDiscovery());
     }
+    // GET /api/prompt-stats
+    if (path === '/api/prompt-stats' && req.method === 'GET') {
+      const { PromptOptimizer } = await import('./engine/prompt-optimizer.js');
+      return json(res, new PromptOptimizer(geneMap.database).getStats());
+    }
+    // GET /api/prompt-examples
+    if (path === '/api/prompt-examples' && req.method === 'GET') {
+      const { PromptOptimizer } = await import('./engine/prompt-optimizer.js');
+      return json(res, { examples: new PromptOptimizer(geneMap.database).getBestExamples() });
+    }
     // GET /api/adapter-suggestions
     if (path === '/api/adapter-suggestions' && req.method === 'GET') {
       const { AdapterDiscovery } = await import('./engine/adapter-discovery.js');

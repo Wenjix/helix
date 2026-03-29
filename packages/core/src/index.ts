@@ -1,6 +1,10 @@
 // ── Public API ──
 export { wrap, createEngine, shutdown } from './engine/wrap.js';
 
+// ── Prompt Optimizer (DSPy) ──
+export { PromptOptimizer } from './engine/prompt-optimizer.js';
+export type { ClassificationRecord, FewShotExample } from './engine/prompt-optimizer.js';
+
 // ── Self-Refine ──
 export { refine, filterCandidates, createRefinementContext, recordAttempt } from './engine/self-refine.js';
 export type { AttemptRecord, RefinementContext, RefinementResult } from './engine/self-refine.js';

@@ -1,5 +1,6 @@
 import { bus } from './bus.js';
 import { refine, filterCandidates, createRefinementContext, recordAttempt } from './self-refine.js';
+import { PromptOptimizer } from './prompt-optimizer.js';
 import { GeneMap } from './gene-map.js';
 import { evaluate } from './evaluate.js';
 import { HelixProvider } from './provider.js';
@@ -83,6 +84,7 @@ export class PcecEngine {
   private metaLearner: MetaLearner;
   private safetyVerifier: SafetyVerifier;
   private adaptiveWeights: AdaptiveWeights;
+  private promptOptimizer: PromptOptimizer;
 
   constructor(geneMap: GeneMap, agentId: string = 'default', options?: WrapOptions) {
     this.geneMap = geneMap;
@@ -95,6 +97,7 @@ export class PcecEngine {
     this.metaLearner = new MetaLearner(geneMap.database);
     this.safetyVerifier = new SafetyVerifier();
     this.adaptiveWeights = new AdaptiveWeights(geneMap.database);
+    this.promptOptimizer = new PromptOptimizer(geneMap.database);
     if (options?.registry?.url) {
       this.registry = new GeneRegistryClient({ ...options.registry, agentId: this.agentId });
       this.registry.startAutoSync(this.geneMap);
@@ -254,11 +257,20 @@ export class PcecEngine {
     if (failure.code === 'unknown' && this.options.llm?.enabled) {
       try {
         const { llmClassify } = await import('./llm.js');
-        const llmResult = await llmClassify(error.message, this.options.llm);
+        const fewShot = this.promptOptimizer.buildFewShotPrompt();
+        const llmResult = await llmClassify(error.message, this.options.llm, fewShot || undefined);
         if (llmResult && llmResult.code !== 'unknown') {
           failure = llmResult;
           const rc = getRootCause(failure.code, failure.category);
           if (rc) failure.rootCauseHint = rc.hint;
+          // DSPy: record LLM classification for prompt optimization
+          this.promptOptimizer.record({
+            errorMessage: error.message,
+            predictedCode: failure.code,
+            predictedCategory: failure.category,
+            predictedStrategy: 'unknown',
+            actualOutcome: 'unknown',
+          });
         }
       } catch { /* LLM failed, continue with unknown */ }
     }
@@ -594,6 +606,10 @@ export class PcecEngine {
     if (verified) {
       this.stats.repairs++;
       this.stats.savedRevenue += revenue;
+      // DSPy: update LLM classification outcome
+      if (failure.llmClassified) {
+        this.promptOptimizer.updateOutcome(error.message, winner.strategy, true);
+      }
       this.cycleCount = 0;
       recordAttempt(refineCtx, winner.strategy, false, undefined, totalMs);
 
@@ -706,6 +722,10 @@ export class PcecEngine {
 
     // Verify failed
     recordAttempt(refineCtx, winner.strategy, true, commitResult.description, Date.now() - start);
+    // DSPy: update LLM classification outcome
+    if (failure.llmClassified) {
+      this.promptOptimizer.updateOutcome(error.message, winner.strategy, false);
+    }
     this.geneMap.logRepairFailed(repairId);
     this.geneMap.updateContext(failure.code, failure.category, false, { chain: (context?.chainId as number)?.toString(), platform: failure.platform });
     this.geneMap.recordFailureAnalysis(failure.code, failure.category, `Strategy '${winner.strategy}' failed: ${commitResult.description}`);

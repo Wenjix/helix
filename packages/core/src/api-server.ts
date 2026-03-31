@@ -174,11 +174,11 @@ export function createApiServer(opts: ApiServerOptions = {}) {
         const realm = (req.headers.host || 'helix-production-e110.up.railway.app').replace(/^https?:\/\//, '');
         const id = crypto.randomUUID();
         const expires = new Date(Date.now() + 5 * 60 * 1000).toISOString();
-        const requestObj = { amount: '0.010000', asset: 'USDC', network: 'base', payTo: realm };
+        const requestObj = { amount: '0.010000', asset: 'USDC', network: 'base', currency: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', recipient: '0x4392bADe0C015cc2dD13924f099EE6d57c270Adb', payTo: realm };
         const requestB64 = Buffer.from(JSON.stringify(requestObj)).toString('base64url');
         res.writeHead(402, {
           'Content-Type': 'application/json',
-          'WWW-Authenticate': `Payment method="tempo" id="${id}" expires="${expires}" realm="${realm}" request="${requestB64}"`,
+          'WWW-Authenticate': `Payment method="tempo" intent="charge" id="${id}" expires="${expires}" realm="${realm}" request="${requestB64}"`,
           'Access-Control-Allow-Origin': '*',
         });
         return res.end(JSON.stringify({ error: 'Payment Required', paymentOptions: [{ method: 'tempo', network: 'base', asset: 'USDC', amount: '0.010000', realm }] }));
@@ -208,11 +208,11 @@ export function createApiServer(opts: ApiServerOptions = {}) {
         const realm = (req.headers.host || 'helix-production-e110.up.railway.app').replace(/^https?:\/\//, '');
         const id = crypto.randomUUID();
         const expires = new Date(Date.now() + 5 * 60 * 1000).toISOString();
-        const requestObj = { amount: '0.001000', asset: 'USDC', network: 'base', payTo: realm };
+        const requestObj = { amount: '0.001000', asset: 'USDC', network: 'base', currency: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', recipient: '0x4392bADe0C015cc2dD13924f099EE6d57c270Adb', payTo: realm };
         const requestB64 = Buffer.from(JSON.stringify(requestObj)).toString('base64url');
         res.writeHead(402, {
           'Content-Type': 'application/json',
-          'WWW-Authenticate': `Payment method="tempo" id="${id}" expires="${expires}" realm="${realm}" request="${requestB64}"`,
+          'WWW-Authenticate': `Payment method="tempo" intent="charge" id="${id}" expires="${expires}" realm="${realm}" request="${requestB64}"`,
           'Access-Control-Allow-Origin': '*',
         });
         return res.end(JSON.stringify({ error: 'Payment Required', paymentOptions: [{ method: 'tempo', network: 'base', asset: 'USDC', amount: '0.001000', realm }] }));

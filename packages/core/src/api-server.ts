@@ -159,7 +159,7 @@ export function createApiServer(opts: ApiServerOptions = {}) {
               operationId: 'getGeneMap',
               summary: 'Gene Map - View learned repair patterns',
               tags: ['Intelligence'],
-              security: [],
+              security: [{}],
               responses: { '200': { description: 'Gene Map state', content: { 'application/json': { schema: { type: 'object', properties: { totalGenes: { type: 'number' }, topPatterns: { type: 'array', items: { type: 'object' } }, successRate: { type: 'number' } }, required: ['totalGenes', 'topPatterns', 'successRate'] } } } } },
             },
           },

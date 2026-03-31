@@ -214,14 +214,21 @@ function createGraph(nodes, links) {
 
   const tooltip = document.getElementById('tooltip');
   nodeEls.on('mouseover', (e,d) => {
-    if(d.group==='outcome') return;
     tooltip.style.display='block';
     tooltip.style.left=(e.pageX+12)+'px';
     tooltip.style.top=(e.pageY-12)+'px';
-    let html = `<strong>${d.label||d.id}</strong><br><span style="color:rgba(245,240,232,.5)">${d.group}</span>`;
-    if(d.events!==undefined) html+=`<br>Events: ${d.events}`;
-    if(d.count!==undefined) html+=`<br>Genes: ${d.count}`;
-    if(d.successes!==undefined) html+=`<br>Successes: ${d.successes}`;
+    let html;
+    if(d.group==='outcome') {
+      const parentLink = links.find(l => (typeof l.target==='object'?l.target.id:l.target)===d.id);
+      const stratId = parentLink ? (typeof parentLink.source==='object'?parentLink.source.id:parentLink.source) : '';
+      const stratLabel = nodes.find(n => n.id===stratId)?.label || stratId.replace('strat-','');
+      html = `<strong style="color:${d.result==='success'?'#22c55e':'#ef4444'}">${d.result==='success'?'Repair Success':'Repair Failed'}</strong><br><span style="color:rgba(245,240,232,.5)">Strategy: ${stratLabel}</span>`;
+    } else {
+      html = `<strong>${d.label||d.id}</strong><br><span style="color:rgba(245,240,232,.5)">${d.group}</span>`;
+      if(d.events!==undefined) html+=`<br>Events: ${d.events}`;
+      if(d.count!==undefined) html+=`<br>Genes: ${d.count}`;
+      if(d.successes!==undefined) html+=`<br>Successes: ${d.successes}`;
+    }
     tooltip.innerHTML=html;
     // highlight connected
     const connected = new Set([d.id]);

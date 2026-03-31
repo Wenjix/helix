@@ -244,6 +244,21 @@ export function createApiServer(opts: ApiServerOptions = {}) {
       }
     }
 
+    // GET /dashboard/evolution-tree
+    if (path === '/dashboard/evolution-tree' && req.method === 'GET') {
+      try {
+        const __dir = dirname(fileURLToPath(import.meta.url));
+        const paths = [join(__dir, '../static/evolution-tree.html'), join(__dir, '../../static/evolution-tree.html')];
+        let html = '';
+        for (const p of paths) { try { html = readFileSync(p, 'utf-8'); break; } catch { /* next */ } }
+        if (!html) throw new Error('not found');
+        res.writeHead(200, { 'Content-Type': 'text/html', 'Access-Control-Allow-Origin': '*' });
+        return res.end(html);
+      } catch {
+        return json(res, { error: 'Evolution tree page not found' }, 404);
+      }
+    }
+
     // GET /api/gene-scores — all genes with 6D scores
     if (path === '/api/gene-scores' && req.method === 'GET') {
       const db = geneMap.database;
@@ -315,6 +330,89 @@ export function createApiServer(opts: ApiServerOptions = {}) {
       const { AdapterDiscovery } = await import('./engine/adapter-discovery.js');
       return json(res, new AdapterDiscovery(geneMap.database).runDiscovery());
     }
+    // GET /api/evolution-tree — data for phylogenetic tree visualization
+    if (path === '/api/evolution-tree' && req.method === 'GET') {
+      const genes = geneMap.list();
+      const nodes: any[] = [];
+      const links: any[] = [];
+
+      nodes.push({ id: 'helix', label: 'Helix', group: 'core', events: genes.length });
+
+      const categorySet = new Map<string, any>();
+      const platformSet = new Map<string, any>();
+      const strategySet = new Map<string, any>();
+
+      for (const gene of genes) {
+        const catId = `cat-${gene.category}`;
+        if (!categorySet.has(catId)) categorySet.set(catId, { id: catId, label: gene.category, events: 0, group: 'category' });
+        categorySet.get(catId)!.events += (gene.successCount || 0);
+
+        const platArr = Array.isArray(gene.platforms) ? gene.platforms : (typeof gene.platforms === 'string' ? JSON.parse(gene.platforms || '[]') : []);
+        for (const plat of platArr) {
+          const platId = `plat-${plat}`;
+          if (!platformSet.has(platId)) platformSet.set(platId, { id: platId, label: plat, events: 0, group: 'platform' });
+          platformSet.get(platId)!.events++;
+        }
+
+        const stratId = `strat-${gene.strategy}`;
+        if (!strategySet.has(stratId)) strategySet.set(stratId, { id: stratId, label: gene.strategy, count: 0, successes: 0, group: 'strategy' });
+        const s = strategySet.get(stratId)!;
+        s.count++;
+        s.successes += gene.successCount || 0;
+      }
+
+      for (const cat of categorySet.values()) nodes.push(cat);
+      for (const plat of platformSet.values()) nodes.push(plat);
+      for (const strat of strategySet.values()) nodes.push(strat);
+
+      for (const cat of categorySet.values()) links.push({ source: 'helix', target: cat.id, type: 'core-cat' });
+      for (const plat of platformSet.values()) links.push({ source: 'helix', target: plat.id, type: 'core-plat' });
+
+      const seen = new Set<string>();
+      for (const gene of genes) {
+        const catId = `cat-${gene.category}`;
+        const stratId = `strat-${gene.strategy}`;
+        const k1 = `${catId}→${stratId}`;
+        if (!seen.has(k1) && categorySet.has(catId) && strategySet.has(stratId)) { seen.add(k1); links.push({ source: catId, target: stratId, type: 'cat-strat' }); }
+
+        const platArr = Array.isArray(gene.platforms) ? gene.platforms : (typeof gene.platforms === 'string' ? JSON.parse(gene.platforms || '[]') : []);
+        for (const plat of platArr) {
+          const platId = `plat-${plat}`;
+          const k2 = `${platId}→${catId}`;
+          if (!seen.has(k2) && platformSet.has(platId) && categorySet.has(catId)) { seen.add(k2); links.push({ source: platId, target: catId, type: 'plat-cat' }); }
+        }
+      }
+
+      let oid = 0;
+      for (const gene of genes) {
+        const stratId = `strat-${gene.strategy}`;
+        for (let i = 0; i < Math.min(gene.successCount || 0, 3); i++) {
+          const id = `out-${oid++}`;
+          nodes.push({ id, group: 'outcome', result: 'success' });
+          links.push({ source: stratId, target: id, type: 'strat-out' });
+        }
+      }
+
+      const totalOutcomes = nodes.filter(n => n.group === 'outcome').length;
+      const healed = nodes.filter(n => n.result === 'success').length;
+      const stratCounts: Record<string, number> = {};
+      for (const s of strategySet.values()) stratCounts[s.label] = s.count;
+      const totalStrat = Object.values(stratCounts).reduce((a: number, b: number) => a + b, 0) || 1;
+      let shannonH = 0;
+      Object.values(stratCounts).forEach((c: number) => { const p = c / totalStrat; if (p > 0) shannonH -= p * Math.log(p); });
+      const richness = strategySet.size;
+      const evenness = richness > 1 ? shannonH / Math.log(richness) : 1;
+      const avgQ = genes.length > 0 ? genes.reduce((sum, g) => sum + (g.qValue || 0), 0) / genes.length : 0;
+
+      return json(res, {
+        nodes, links,
+        stats: { totalGenes: genes.length, totalOutcomes, healed, failed: totalOutcomes - healed, successRate: totalOutcomes > 0 ? (healed / totalOutcomes * 100).toFixed(1) : '0', avgQ: avgQ.toFixed(3) },
+        health: { shannonH: shannonH.toFixed(3), richness, evenness: evenness.toFixed(3) },
+        strategyDistribution: Object.entries(stratCounts).sort((a, b) => (b[1] as number) - (a[1] as number)),
+        platforms: Array.from(platformSet.values()).map(p => ({ name: p.label, events: p.events })),
+      });
+    }
+
     // GET /api/prompt-stats
     if (path === '/api/prompt-stats' && req.method === 'GET') {
       const { PromptOptimizer } = await import('./engine/prompt-optimizer.js');

@@ -342,8 +342,9 @@ function agentStats(agentId: string) {
       const port = portIdx !== -1 ? parseInt(process.argv[portIdx + 1]) || 7842 : parseInt(process.env.PORT || '') || 7842;
       const modeIdx = process.argv.indexOf('--mode');
       const mode = modeIdx !== -1 ? process.argv[modeIdx + 1] as 'observe' | 'auto' | 'full' : 'observe';
+      const beta = process.argv.includes('--beta');
       const { createApiServer } = await import('./api-server.js');
-      const api = createApiServer({ port, mode });
+      const api = createApiServer({ port, mode, beta });
       await api.start();
       break;
     }

@@ -51,12 +51,14 @@ export interface ApiServerOptions {
   port?: number;
   mode?: HelixMode;
   geneMapPath?: string;
+  beta?: boolean;
 }
 
 export function createApiServer(opts: ApiServerOptions = {}) {
   const port = opts.port ?? 7842;
   const mode = opts.mode ?? 'observe';
   const geneMapPath = opts.geneMapPath ?? './helix-genes.db';
+  const betaEnabled = opts.beta ?? false;
 
   const geneMap = new GeneMap(geneMapPath);
   const engine = new PcecEngine(geneMap, 'api-server', { mode, llm: { provider: 'anthropic', enabled: !!(process.env.ANTHROPIC_API_KEY || process.env.HELIX_LLM_API_KEY) } } as any);
@@ -285,6 +287,23 @@ export function createApiServer(opts: ApiServerOptions = {}) {
       return res.end(JSON.stringify({ totalGenes, topPatterns, successRate: totalAttempts > 0 ? Math.round(totalSuccess / totalAttempts * 100) / 100 : 1 }));
     }
 
+    // GET /vial/status — VialOS runtime info (beta only)
+    if (path === '/vial/status' && req.method === 'GET') {
+      if (!betaEnabled) return json(res, { error: 'Beta mode not enabled. Start with --beta flag.' }, 404);
+      const health = geneMap.health();
+      return json(res, {
+        product: 'helix', productVersion: '2.6.0', beta: true,
+        vialos: {
+          runtime: 'embedded', runtimeVersion: '0.3.x-compatible', engine: 'pcec-v6',
+          stages: ['perceive', 'construct', 'evaluate', 'commit', 'verify', 'gene'],
+          modules: { selfRefine: true, promptOptimizer: true, negativeKnowledge: true, causalGraph: true, metaLearner: true, safetyVerifier: true, adaptiveWeights: true, conditionalGenes: true, selfPlay: true, federatedLearning: true, autoStrategy: true, autoAdapterDiscovery: true, geneDream: true },
+          adapters: ['coinbase', 'tempo', 'privy', 'generic', 'api'],
+        },
+        geneMap: { schemaVersion: CURRENT_SCHEMA_VERSION, totalGenes: health.totalGenes, avgQValue: health.avgQValue },
+        links: { dashboard: '/dashboard', geneMap: '/vial/gene-map', health: '/health' },
+      });
+    }
+
     // GET /vial/gene-map — VialOS Gene Map stats
     if (path === '/vial/gene-map' && req.method === 'GET') {
       const genes = vialGeneMap.list();
@@ -329,7 +348,12 @@ export function createApiServer(opts: ApiServerOptions = {}) {
 
     // GET /health
     if (path === '/health' && req.method === 'GET') {
-      return json(res, { status: 'ok', version: '2.6.0', schemaVersion: getSchemaVersion(geneMap.database), targetSchemaVersion: CURRENT_SCHEMA_VERSION, uptime: process.uptime() });
+      const health: any = { status: 'ok', version: '2.6.0', schemaVersion: getSchemaVersion(geneMap.database), targetSchemaVersion: CURRENT_SCHEMA_VERSION, uptime: process.uptime() };
+      if (betaEnabled) {
+        health.vialos = { runtime: 'embedded', engine: 'pcec-v6', geneMapSchema: CURRENT_SCHEMA_VERSION, compatibility: '@vial-agent/runtime@0.3.x' };
+        health.beta = true;
+      }
+      return json(res, health);
     }
 
     // GET /schema
@@ -439,6 +463,9 @@ export function createApiServer(opts: ApiServerOptions = {}) {
         let html = '';
         for (const p of paths) { try { html = readFileSync(p, 'utf-8'); break; } catch { /* next */ } }
         if (!html) throw new Error('not found');
+        if (betaEnabled) {
+          html = html.replace('</body>', `<div style="position:fixed;bottom:16px;right:16px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:8px;padding:6px 14px;font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(245,240,232,0.5);backdrop-filter:blur(8px);z-index:1000;display:flex;align-items:center;gap:8px"><span style="width:6px;height:6px;border-radius:50%;background:#f59e0b;display:inline-block"></span>Powered by VialOS Runtime · Beta</div></body>`);
+        }
         res.writeHead(200, { 'Content-Type': 'text/html', 'Access-Control-Allow-Origin': '*' });
         return res.end(html);
       } catch {
@@ -800,7 +827,13 @@ export function createApiServer(opts: ApiServerOptions = {}) {
         console.log(`\n  POST /repair  — diagnose + repair`);
         console.log(`  GET  /health  — healthcheck`);
         console.log(`  GET  /status  — Gene Map stats`);
-        console.log(`  GET  /genes   — list all genes\n`);
+        console.log(`  GET  /genes   — list all genes`);
+        if (betaEnabled) {
+          console.log(`\n  \x1b[33m🧪 Beta mode: VialOS integration enabled\x1b[0m`);
+          console.log(`  GET  /vial/status  — VialOS runtime info`);
+          console.log(`  Dashboard: "Powered by VialOS Runtime" badge`);
+        }
+        console.log();
         resolve();
       });
     }),

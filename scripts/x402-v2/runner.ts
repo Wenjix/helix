@@ -1,44 +1,36 @@
 /**
- * x402 Reliability Study v2 — Clean Design
- *
- * Fixes from v1 (Eric Brown / x402 team feedback):
- *  1. Sequential single submissions — no parallel fork
- *  2. CDP Server Wallet — not self-hosted PK
- *  3. estimateGas + 10% buffer, logged per tx
- *  4. Clean separation: rpc_error vs api_error vs tx_error
+ * x402 Reliability Study v2 — CDP SDK (@coinbase/cdp-sdk)
  *
  * Usage:
- *   npx tsx scripts/x402-v2/runner.ts raw 12      # 12h raw run
- *   npx tsx scripts/x402-v2/runner.ts helix 12    # 12h helix run
- *   npx tsx scripts/x402-v2/runner.ts raw 0.01    # quick test (~36s)
+ *   npx tsx scripts/x402-v2/runner.ts raw 12      # 12h raw baseline
+ *   npx tsx scripts/x402-v2/runner.ts helix 12    # 12h with Helix repair
+ *   npx tsx scripts/x402-v2/runner.ts raw 0.001   # quick test
+ *
+ * Env vars (auto-read by CdpClient):
+ *   CDP_API_KEY_ID, CDP_API_KEY_SECRET, CDP_WALLET_SECRET
  */
 
-import { Coinbase, Wallet } from '@coinbase/coinbase-sdk';
-import { ethers } from 'ethers';
+import { CdpClient } from '@coinbase/cdp-sdk';
+import { createPublicClient, http, parseEther, formatEther } from 'viem';
+import { base } from 'viem/chains';
 import * as fs from 'fs';
 import * as path from 'path';
 
 const TX_INTERVAL_MS = 180_000;
 const TRANSFER_AMOUNT_ETH = '0.0001';
-const RECIPIENT = process.env.RECIPIENT_ADDRESS || process.env.RECIPIENT || '0x0000000000000000000000000000000000000001';
-
-function initCDP() {
-  const name = process.env.CDP_API_KEY_NAME;
-  const pk = process.env.CDP_API_KEY_PRIVATE_KEY;
-  if (!name || !pk) throw new Error('Set CDP_API_KEY_NAME and CDP_API_KEY_PRIVATE_KEY in .env');
-  Coinbase.configure({ apiKeyName: name, privateKey: pk.replace(/\\n/g, '\n') });
-}
+const RECIPIENT = process.env.RECIPIENT_ADDRESS || process.env.RECIPIENT || '0xd296C79EF6D4a048c80293386A58fA15C6e658A9';
+const ACCOUNT_NAME = 'x402-v2-study';
 
 interface ClassifiedError { code: string; source: 'rpc' | 'api' | 'tx' | 'unknown'; message: string; }
 
 function classifyError(err: any): ClassifiedError {
   const msg = (err?.message || String(err)).toLowerCase();
   if (msg.includes('429') && msg.includes('alchemy')) return { code: 'rpc_rate_limit', source: 'rpc', message: err.message };
-  if (msg.includes('could not detect network') || msg.includes('network error')) return { code: 'rpc_network_error', source: 'rpc', message: err.message };
+  if (msg.includes('network error') || msg.includes('could not detect')) return { code: 'rpc_network_error', source: 'rpc', message: err.message };
   if (msg.includes('429')) return { code: 'api_rate_limit', source: 'api', message: err.message };
   if (msg.includes('402') || msg.includes('payment required')) return { code: 'api_payment_required', source: 'api', message: err.message };
   if (msg.includes('503') || msg.includes('502')) return { code: 'api_server_error', source: 'api', message: err.message };
-  if (msg.includes('nonce') || msg.includes('replacement transaction')) return { code: 'tx_nonce_conflict', source: 'tx', message: err.message };
+  if (msg.includes('nonce') || msg.includes('replacement')) return { code: 'tx_nonce_conflict', source: 'tx', message: err.message };
   if (msg.includes('insufficient fund') || msg.includes('insufficient balance')) return { code: 'tx_insufficient_funds', source: 'tx', message: err.message };
   if (msg.includes('gas') && msg.includes('low')) return { code: 'tx_gas_too_low', source: 'tx', message: err.message };
   if (msg.includes('underpriced')) return { code: 'tx_underpriced', source: 'tx', message: err.message };
@@ -65,7 +57,7 @@ interface TxResult {
   repaired: boolean; repairStrategy: string | null; attempts: number;
 }
 
-async function sendOneTx(wallet: any, provider: ethers.Provider, index: number, mode: 'raw' | 'helix', amount = TRANSFER_AMOUNT_ETH): Promise<TxResult> {
+async function sendOneTx(baseAccount: any, publicClient: any, index: number, mode: 'raw' | 'helix', amount = TRANSFER_AMOUNT_ETH): Promise<TxResult> {
   const result: TxResult = { index, timestamp: new Date().toISOString(), mode, gasEstimate: null, gasEstimatePlusBuffer: null, gasUsed: null, gasPrice: null, gasCostETH: null, success: false, txHash: null, basescanUrl: null, errorCode: null, errorSource: null, errorMessage: null, repaired: false, repairStrategy: null, attempts: 0 };
   const MAX = mode === 'helix' ? 3 : 1;
   let amt = amount;
@@ -75,25 +67,28 @@ async function sendOneTx(wallet: any, provider: ethers.Provider, index: number, 
     try {
       // Gas estimate
       try {
-        const est = await provider.estimateGas({ to: RECIPIENT, value: ethers.parseEther(amt) });
+        const est = await publicClient.estimateGas({ to: RECIPIENT as `0x${string}`, value: parseEther(amt) });
         result.gasEstimate = est.toString();
         result.gasEstimatePlusBuffer = ((est * 110n) / 100n).toString();
       } catch {}
 
-      // Send via CDP
-      const transfer = await wallet.createTransfer({ amount: parseFloat(amt), assetId: Coinbase.assets.Eth, destination: RECIPIENT, gasless: false });
-      await transfer.wait();
-      const tx = transfer.getTransaction();
-      result.txHash = tx?.getTransactionHash() ?? null;
+      // Send via CDP account
+      const txResult = await baseAccount.sendTransaction({ to: RECIPIENT as `0x${string}`, value: parseEther(amt) });
+      result.txHash = txResult.transactionHash;
       result.basescanUrl = result.txHash ? `https://basescan.org/tx/${result.txHash}` : null;
 
-      // Receipt
+      // Wait for receipt
       if (result.txHash) {
         try {
-          const receipt = await provider.getTransactionReceipt(result.txHash);
-          if (receipt) { result.gasUsed = receipt.gasUsed.toString(); result.gasPrice = receipt.gasPrice?.toString() ?? null; if (receipt.gasUsed && receipt.gasPrice) result.gasCostETH = ethers.formatEther(receipt.gasUsed * receipt.gasPrice); }
+          const receipt = await baseAccount.waitForTransactionReceipt(txResult);
+          if (receipt) {
+            result.gasUsed = receipt.gasUsed?.toString() ?? null;
+            result.gasPrice = receipt.effectiveGasPrice?.toString() ?? null;
+            if (receipt.gasUsed && receipt.effectiveGasPrice) result.gasCostETH = formatEther(receipt.gasUsed * receipt.effectiveGasPrice);
+          }
         } catch {}
       }
+
       result.success = true;
       break;
     } catch (err: any) {
@@ -110,35 +105,35 @@ async function sendOneTx(wallet: any, provider: ethers.Provider, index: number, 
 }
 
 async function main() {
-  initCDP();
   const mode = (process.argv[2] as 'raw' | 'helix') ?? 'raw';
   const hours = parseFloat(process.argv[3] ?? '12');
   const durationMs = hours * 3600000;
 
-  console.log(`\nx402 Reliability Study v2\nMode: ${mode.toUpperCase()} | Duration: ${hours}h | Interval: ${TX_INTERVAL_MS / 1000}s\nExpected txs: ~${Math.floor(durationMs / TX_INTERVAL_MS)}\n`);
+  console.log(`\nx402 Reliability Study v2 (cdp-sdk)\nMode: ${mode.toUpperCase()} | Duration: ${hours}h | Interval: ${TX_INTERVAL_MS / 1000}s\nExpected txs: ~${Math.floor(durationMs / TX_INTERVAL_MS)}\n`);
 
-  // Persist wallet: create once → save seed, then reload on subsequent runs
-  const seedFile = path.join(import.meta.dirname || '.', '../../x402-v2-results/wallet-seed.json');
-  fs.mkdirSync(path.dirname(seedFile), { recursive: true });
-  let wallet: InstanceType<typeof Wallet>;
-  if (fs.existsSync(seedFile)) {
-    const seedData = JSON.parse(fs.readFileSync(seedFile, 'utf-8'));
-    wallet = await Wallet.import(seedData);
-    console.log('Loaded existing CDP wallet from seed file');
-  } else {
-    wallet = await Wallet.create({ networkId: 'base-mainnet' });
-    const seedData = wallet.export();
-    fs.writeFileSync(seedFile, JSON.stringify(seedData, null, 2));
-    console.log(`Created new CDP wallet, seed saved to ${seedFile}`);
+  // Init CDP client (reads CDP_API_KEY_ID, CDP_API_KEY_SECRET, CDP_WALLET_SECRET from env)
+  const cdp = new CdpClient();
+
+  // Get or create account by name
+  let account;
+  try {
+    account = await cdp.evm.getAccount({ name: ACCOUNT_NAME });
+    console.log(`Loaded existing CDP account: ${ACCOUNT_NAME}`);
+  } catch {
+    account = await cdp.evm.createAccount({ name: ACCOUNT_NAME });
+    console.log(`Created new CDP account: ${ACCOUNT_NAME}`);
   }
-  const addr = await wallet.getDefaultAddress();
-  console.log(`CDP Wallet: ${addr.getId()}\nBaseScan: https://basescan.org/address/${addr.getId()}`);
 
-  const provider = new ethers.JsonRpcProvider(process.env.BASE_RPC_URL || 'https://mainnet.base.org');
-  const balance = await provider.getBalance(addr.getId());
-  console.log(`Balance: ${ethers.formatEther(balance)} ETH\n`);
+  // Scope to Base mainnet
+  const baseAccount = await account.useNetwork('base');
+  console.log(`CDP Account: ${account.address}\nBaseScan: https://basescan.org/address/${account.address}`);
 
-  if (balance < ethers.parseEther('0.01')) { console.error('Need >= 0.01 ETH. Fund the CDP wallet above.'); process.exit(1); }
+  // Check balance via public client
+  const publicClient = createPublicClient({ chain: base, transport: http(process.env.BASE_RPC_URL || 'https://mainnet.base.org') });
+  const balance = await publicClient.getBalance({ address: account.address as `0x${string}` });
+  console.log(`Balance: ${formatEther(balance)} ETH\n`);
+
+  if (balance < parseEther('0.01')) { console.error('Need >= 0.01 ETH. Fund the CDP account above.'); process.exit(1); }
 
   const outDir = path.join(import.meta.dirname || '.', '../../x402-v2-results');
   fs.mkdirSync(outDir, { recursive: true });
@@ -149,10 +144,9 @@ async function main() {
 
   while (Date.now() - start < durationMs) {
     idx++;
-    const elapsed = ((Date.now() - start) / 60000).toFixed(1);
-    console.log(`\n[${elapsed}min] TX #${idx} (${mode})...`);
+    console.log(`\n[${((Date.now() - start) / 60000).toFixed(1)}min] TX #${idx} (${mode})...`);
 
-    const r = await sendOneTx(wallet, provider, idx, mode);
+    const r = await sendOneTx(baseAccount, publicClient, idx, mode);
     results.push(r);
 
     if (r.success) console.log(`  ✅ ${r.txHash?.slice(0, 20)}... gas: ${r.gasCostETH ?? '?'} ETH`);
@@ -172,7 +166,7 @@ async function main() {
         avgGasUsed: results.filter(r => r.gasUsed).reduce((s, r) => s + parseInt(r.gasUsed!), 0) / (results.filter(r => r.gasUsed).length || 1),
       },
     };
-    fs.writeFileSync(outFile, JSON.stringify({ summary, results, cdpWalletAddress: addr.getId() }, null, 2));
+    fs.writeFileSync(outFile, JSON.stringify({ summary, results, cdpAccountAddress: account.address, cdpAccountName: ACCOUNT_NAME }, null, 2));
 
     if (Date.now() - start + TX_INTERVAL_MS < durationMs) await new Promise(r => setTimeout(r, TX_INTERVAL_MS));
     else break;

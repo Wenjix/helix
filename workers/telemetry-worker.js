@@ -14,10 +14,12 @@ export default {
 
     try {
       const body = await request.json();
-      if (!body.ec || typeof body.ok !== 'number') return new Response('Invalid payload', { status: 400 });
+      if (!body.e || !body.ec) return new Response('Invalid payload: e and ec required', { status: 400 });
 
       const date = new Date().toISOString().slice(0, 10);
-      const key = `repair:${date}:${body.ec}:${body.ra}:${body.ok}`;
+      const ra = body.ra ?? 'none';
+      const ok = body.ok !== undefined ? body.ok : 'unknown';
+      const key = `${body.e}:${date}:${body.ec}:${ra}:${ok}`;
       const existing = await env.HELIX_TELEMETRY.get(key);
       await env.HELIX_TELEMETRY.put(key, String((parseInt(existing || '0')) + 1), { expirationTtl: 60 * 60 * 24 * 90 });
 

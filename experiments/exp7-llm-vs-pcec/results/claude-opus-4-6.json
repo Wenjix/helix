@@ -3,179 +3,140 @@
   "date": "April 2026",
   "llm_results": {
     "model": "claude-opus-4-6",
-    "timestamp": "2026-04-08T22:20:53.580851",
+    "timestamp": "2026-04-08T22:26:39.478039",
     "total": 10,
-    "correct": 0,
-    "accuracy": 0.0,
+    "correct": 9,
+    "accuracy": 0.9,
     "results": [
       {
         "id": "E01",
         "raw_message": "execution reverted: Transaction too old",
         "correct_class": "expired_deadline",
-        "llm_class": "error",
-        "correct": false,
-        "error": "\"Could not resolve authentication method. Expected either api_key or auth_token to be set. Or for one of the `X-Api-Key` or `Authorization` headers to be explicitly omitted\""
+        "llm_class": "expired_deadline",
+        "llm_confidence": 0.97,
+        "llm_fix": "Resubmit the transaction with an updated deadline parameter, e.g., set the deadline to `block.timestamp + 300` (current time plus 5 minutes) to ensure it is processed before expiring.",
+        "llm_reasoning": "The revert message 'Transaction too old' indicates that the transaction's deadline parameter had already passed by the time it was included in a block, so the contract rejected it as expired.",
+        "correct": true,
+        "note": ""
       },
       {
         "id": "E02",
         "raw_message": "execution reverted: Too little received",
         "correct_class": "slippage_too_tight",
-        "llm_class": "error",
-        "correct": false,
-        "error": "\"Could not resolve authentication method. Expected either api_key or auth_token to be set. Or for one of the `X-Api-Key` or `Authorization` headers to be explicitly omitted\""
+        "llm_class": "slippage_too_tight",
+        "llm_confidence": 0.95,
+        "llm_fix": "Increase the slippage tolerance (e.g., from 0.5% to 1-3%) or set a lower `amountOutMinimum` parameter to allow for greater price movement between submission and execution.",
+        "llm_reasoning": "The error 'Too little received' indicates the swap's output amount fell below the specified `amountOutMinimum`, meaning the slippage tolerance was too tight relative to actual price movement during transaction execution.",
+        "correct": true,
+        "note": ""
       },
       {
         "id": "E03",
         "raw_message": "execution reverted",
         "correct_class": "slippage_too_tight",
-        "llm_class": "error",
+        "llm_class": "other",
+        "llm_confidence": 0.3,
+        "llm_fix": "Simulate the transaction using a trace/debug tool (e.g., Tenderly) to identify the exact revert reason, then address the specific cause. Common causes include expired deadlines, insufficient allowances, slippage limits, or contract-specific validation failures.",
+        "llm_reasoning": "A bare 'execution reverted' without a specific revert reason string is ambiguous and could stem from many causes, so further debugging via transaction simulation is needed to pinpoint the exact issue.",
         "correct": false,
-        "error": "\"Could not resolve authentication method. Expected either api_key or auth_token to be set. Or for one of the `X-Api-Key` or `Authorization` headers to be explicitly omitted\""
+        "note": "This is the hardest case \u2014 LLMs default to guessing gas"
       },
       {
         "id": "E04",
         "raw_message": "ERC20: transfer amount exceeds allowance",
         "correct_class": "missing_allowance",
-        "llm_class": "error",
-        "correct": false,
-        "error": "\"Could not resolve authentication method. Expected either api_key or auth_token to be set. Or for one of the `X-Api-Key` or `Authorization` headers to be explicitly omitted\""
+        "llm_class": "missing_allowance",
+        "llm_confidence": 0.99,
+        "llm_fix": "Before retrying the transaction, call the ERC20 token's `approve()` function to grant the spender contract (e.g., the router or protocol contract) a sufficient allowance for the token amount being transferred.",
+        "llm_reasoning": "The error explicitly indicates that the contract attempted to transfer more tokens than the owner has approved for the spender, meaning an `approve` transaction is needed to set an adequate allowance.",
+        "correct": true,
+        "note": ""
       },
       {
         "id": "E05",
         "raw_message": "execution reverted: STF",
         "correct_class": "missing_allowance",
-        "llm_class": "error",
-        "correct": false,
-        "error": "\"Could not resolve authentication method. Expected either api_key or auth_token to be set. Or for one of the `X-Api-Key` or `Authorization` headers to be explicitly omitted\""
+        "llm_class": "missing_allowance",
+        "llm_confidence": 0.9,
+        "llm_fix": "Approve the router/swap contract to spend the input token by calling the token's approve() function with the router address and sufficient amount before retrying the swap.",
+        "llm_reasoning": "\"STF\" stands for \"Safe Transfer From\" failure, which is a common error in Uniswap V3 (and forks) indicating that the transferFrom call failed, almost always because the user has not granted sufficient ERC-20 token allowance to the router contract, or in rarer cases has insufficient token balance.",
+        "correct": true,
+        "note": "STF is opaque. LLMs rarely know this Uniswap error code"
       },
       {
         "id": "E06",
         "raw_message": "execution reverted: SPL",
         "correct_class": "slippage_too_tight",
-        "llm_class": "error",
-        "correct": false,
-        "error": "\"Could not resolve authentication method. Expected either api_key or auth_token to be set. Or for one of the `X-Api-Key` or `Authorization` headers to be explicitly omitted\""
+        "llm_class": "slippage_too_tight",
+        "llm_confidence": 0.75,
+        "llm_fix": "Increase the slippage tolerance (e.g., from 0.5% to 1-3%) or recalculate the minimum output amount (amountOutMin) closer to the time of submission to account for price movement.",
+        "llm_reasoning": "The revert message 'SPL' is a common abbreviated error code used by several DEX router/pool contracts on Base (such as Aerodrome or similar forks) indicating a slippage protection limit was hit, meaning the actual output amount fell below the specified minimum acceptable amount.",
+        "correct": true,
+        "note": "SPL is opaque. LLMs rarely know this Uniswap error code"
       },
       {
         "id": "E07",
         "raw_message": "nonce too low",
         "correct_class": "nonce_conflict",
-        "llm_class": "error",
-        "correct": false,
-        "error": "\"Could not resolve authentication method. Expected either api_key or auth_token to be set. Or for one of the `X-Api-Key` or `Authorization` headers to be explicitly omitted\""
+        "llm_class": "nonce_conflict",
+        "llm_confidence": 0.99,
+        "llm_fix": "Fetch the current confirmed nonce for the sender address using `eth_getTransactionCount` with the 'pending' block parameter, and resubmit the transaction with the correct (latest) nonce.",
+        "llm_reasoning": "The 'nonce too low' error indicates that a transaction with this nonce has already been confirmed on-chain, likely due to a duplicate submission or a concurrent transaction that incremented the nonce, so the nonce must be refreshed before resubmitting.",
+        "correct": true,
+        "note": ""
       },
       {
         "id": "E08",
         "raw_message": "replacement transaction underpriced",
         "correct_class": "nonce_conflict",
-        "llm_class": "error",
-        "correct": false,
-        "error": "\"Could not resolve authentication method. Expected either api_key or auth_token to be set. Or for one of the `X-Api-Key` or `Authorization` headers to be explicitly omitted\""
+        "llm_class": "nonce_conflict",
+        "llm_confidence": 0.95,
+        "llm_fix": "Resubmit the transaction with the same nonce but increase both maxFeePerGas and maxPriorityFeePerGas by at least 10% compared to the original pending transaction, or wait for the pending transaction to confirm and then submit with the next nonce.",
+        "llm_reasoning": "The error 'replacement transaction underpriced' occurs when a transaction is submitted with the same nonce as an already pending transaction but with insufficient gas price increase \u2014 the network requires at least a 10% bump in gas fees to replace a pending transaction.",
+        "correct": true,
+        "note": ""
       },
       {
         "id": "E09",
         "raw_message": "execution reverted: UniswapV3Pool: SPL",
         "correct_class": "slippage_too_tight",
-        "llm_class": "error",
-        "correct": false,
-        "error": "\"Could not resolve authentication method. Expected either api_key or auth_token to be set. Or for one of the `X-Api-Key` or `Authorization` headers to be explicitly omitted\""
+        "llm_class": "slippage_too_tight",
+        "llm_confidence": 0.95,
+        "llm_fix": "Widen the sqrtPriceLimitX96 parameter (or relax the slippage tolerance) to allow for greater price movement during the swap. For example, if buying token1, set sqrtPriceLimitX96 closer to MAX_SQRT_RATIO - 1, or if buying token0, set it closer to MIN_SQRT_RATIO + 1.",
+        "llm_reasoning": "The 'SPL' error in UniswapV3Pool stands for 'Square root Price Limit' \u2014 it means the swap hit the sqrtPriceLimitX96 boundary before completing, which is the pool-level mechanism enforcing a price slippage constraint that was set too tightly for the current market conditions.",
+        "correct": true,
+        "note": ""
       },
       {
         "id": "E10",
         "raw_message": "execution reverted: UniswapV3: LOK",
         "correct_class": "reentrancy_lock",
-        "llm_class": "error",
-        "correct": false,
-        "error": "\"Could not resolve authentication method. Expected either api_key or auth_token to be set. Or for one of the `X-Api-Key` or `Authorization` headers to be explicitly omitted\""
+        "llm_class": "reentrancy_lock",
+        "llm_confidence": 0.95,
+        "llm_fix": "Do not attempt to call the Uniswap V3 pool within a callback or nested execution context from the same pool. Restructure your transaction so that the swap or liquidity operation is not re-entering the pool contract. If using a custom contract, ensure your callback does not trigger another call to the same pool before the first operation completes.",
+        "llm_reasoning": "The 'LOK' error in Uniswap V3 is thrown by the reentrancy guard (the `lock` modifier) when a second call is made to the pool while a prior call is still in progress, indicating a reentrancy attempt.",
+        "correct": true,
+        "note": "Almost no LLM knows this one"
       }
     ],
     "failures": [
       {
-        "id": "E01",
-        "raw_message": "execution reverted: Transaction too old",
-        "correct_class": "expired_deadline",
-        "llm_class": "error",
-        "correct": false,
-        "error": "\"Could not resolve authentication method. Expected either api_key or auth_token to be set. Or for one of the `X-Api-Key` or `Authorization` headers to be explicitly omitted\""
-      },
-      {
-        "id": "E02",
-        "raw_message": "execution reverted: Too little received",
-        "correct_class": "slippage_too_tight",
-        "llm_class": "error",
-        "correct": false,
-        "error": "\"Could not resolve authentication method. Expected either api_key or auth_token to be set. Or for one of the `X-Api-Key` or `Authorization` headers to be explicitly omitted\""
-      },
-      {
         "id": "E03",
         "raw_message": "execution reverted",
         "correct_class": "slippage_too_tight",
-        "llm_class": "error",
+        "llm_class": "other",
+        "llm_confidence": 0.3,
+        "llm_fix": "Simulate the transaction using a trace/debug tool (e.g., Tenderly) to identify the exact revert reason, then address the specific cause. Common causes include expired deadlines, insufficient allowances, slippage limits, or contract-specific validation failures.",
+        "llm_reasoning": "A bare 'execution reverted' without a specific revert reason string is ambiguous and could stem from many causes, so further debugging via transaction simulation is needed to pinpoint the exact issue.",
         "correct": false,
-        "error": "\"Could not resolve authentication method. Expected either api_key or auth_token to be set. Or for one of the `X-Api-Key` or `Authorization` headers to be explicitly omitted\""
-      },
-      {
-        "id": "E04",
-        "raw_message": "ERC20: transfer amount exceeds allowance",
-        "correct_class": "missing_allowance",
-        "llm_class": "error",
-        "correct": false,
-        "error": "\"Could not resolve authentication method. Expected either api_key or auth_token to be set. Or for one of the `X-Api-Key` or `Authorization` headers to be explicitly omitted\""
-      },
-      {
-        "id": "E05",
-        "raw_message": "execution reverted: STF",
-        "correct_class": "missing_allowance",
-        "llm_class": "error",
-        "correct": false,
-        "error": "\"Could not resolve authentication method. Expected either api_key or auth_token to be set. Or for one of the `X-Api-Key` or `Authorization` headers to be explicitly omitted\""
-      },
-      {
-        "id": "E06",
-        "raw_message": "execution reverted: SPL",
-        "correct_class": "slippage_too_tight",
-        "llm_class": "error",
-        "correct": false,
-        "error": "\"Could not resolve authentication method. Expected either api_key or auth_token to be set. Or for one of the `X-Api-Key` or `Authorization` headers to be explicitly omitted\""
-      },
-      {
-        "id": "E07",
-        "raw_message": "nonce too low",
-        "correct_class": "nonce_conflict",
-        "llm_class": "error",
-        "correct": false,
-        "error": "\"Could not resolve authentication method. Expected either api_key or auth_token to be set. Or for one of the `X-Api-Key` or `Authorization` headers to be explicitly omitted\""
-      },
-      {
-        "id": "E08",
-        "raw_message": "replacement transaction underpriced",
-        "correct_class": "nonce_conflict",
-        "llm_class": "error",
-        "correct": false,
-        "error": "\"Could not resolve authentication method. Expected either api_key or auth_token to be set. Or for one of the `X-Api-Key` or `Authorization` headers to be explicitly omitted\""
-      },
-      {
-        "id": "E09",
-        "raw_message": "execution reverted: UniswapV3Pool: SPL",
-        "correct_class": "slippage_too_tight",
-        "llm_class": "error",
-        "correct": false,
-        "error": "\"Could not resolve authentication method. Expected either api_key or auth_token to be set. Or for one of the `X-Api-Key` or `Authorization` headers to be explicitly omitted\""
-      },
-      {
-        "id": "E10",
-        "raw_message": "execution reverted: UniswapV3: LOK",
-        "correct_class": "reentrancy_lock",
-        "llm_class": "error",
-        "correct": false,
-        "error": "\"Could not resolve authentication method. Expected either api_key or auth_token to be set. Or for one of the `X-Api-Key` or `Authorization` headers to be explicitly omitted\""
+        "note": "This is the hardest case \u2014 LLMs default to guessing gas"
       }
     ]
   },
   "comparison": {
-    "llm_accuracy": 0.0,
+    "llm_accuracy": 0.9,
     "pcec_accuracy": 1.0,
-    "gap": 1.0,
+    "gap": 0.09999999999999998,
     "llm_model": "claude-opus-4-6"
   }
 }

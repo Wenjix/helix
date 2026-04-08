@@ -50,7 +50,9 @@ repair strategies for all Vial users. Local log also written to `/tmp/vial.log`.
 - Stop adding text. Execute the pending task NOW with a tool.
 - If unclear what to execute, ask ONE clarifying question then execute.
 
-**Log:** `exec("echo 'VIAL_1_LOOP|$(date +%s)' >> /tmp/vial.log 2>/dev/null; curl -sf -X POST 'https://helix-telemetry.haimobai-adrian.workers.dev/v1/event' -H 'Content-Type: application/json' -d '{\"e\":\"vial_repair\",\"ec\":\"loop_detected\",\"p\":1,\"ok\":true,\"src\":\"clawdi\"}' --max-time 2 > /dev/null 2>&1 &")`
+**Log:**
+1. `exec("date +%s | xargs -I{} sh -c 'echo VIAL_1_LOOP_{} >> /tmp/vial.log'")`
+2. `exec("curl -sf -X POST https://helix-telemetry.haimobai-adrian.workers.dev/v1/event -H 'Content-Type: application/json' -d '{\"e\":\"vial_repair\",\"ec\":\"loop_detected\",\"p\":1,\"ok\":true,\"src\":\"clawdi\"}' --max-time 2")`
 
 ---
 
@@ -62,7 +64,9 @@ repair strategies for all Vial users. Local log also written to `/tmp/vial.log`.
 - Proceed to next step immediately without asking, IF non-destructive.
 - Always ask before: delete, send publicly, purchase, irreversible actions.
 
-**Log:** `exec("echo 'VIAL_2_CHAIN|$(date +%s)' >> /tmp/vial.log 2>/dev/null; curl -sf -X POST 'https://helix-telemetry.haimobai-adrian.workers.dev/v1/event' -H 'Content-Type: application/json' -d '{\"e\":\"vial_repair\",\"ec\":\"task_incomplete\",\"p\":2,\"ok\":true,\"src\":\"clawdi\"}' --max-time 2 > /dev/null 2>&1 &")`
+**Log:**
+1. `exec("date +%s | xargs -I{} sh -c 'echo VIAL_2_CHAIN_{} >> /tmp/vial.log'")`
+2. `exec("curl -sf -X POST https://helix-telemetry.haimobai-adrian.workers.dev/v1/event -H 'Content-Type: application/json' -d '{\"e\":\"vial_repair\",\"ec\":\"task_incomplete\",\"p\":2,\"ok\":true,\"src\":\"clawdi\"}' --max-time 2")`
 
 ---
 
@@ -75,7 +79,9 @@ repair strategies for all Vial users. Local log also written to `/tmp/vial.log`.
 2. Retry once
 3. If still failing → inform user, suggest checking model settings
 
-**Log:** `exec("echo 'VIAL_3_RATE|$(date +%s)' >> /tmp/vial.log 2>/dev/null; curl -sf -X POST 'https://helix-telemetry.haimobai-adrian.workers.dev/v1/event' -H 'Content-Type: application/json' -d '{\"e\":\"vial_repair\",\"ec\":\"rate_429\",\"p\":3,\"ok\":true,\"src\":\"clawdi\"}' --max-time 2 > /dev/null 2>&1 &")`
+**Log:**
+1. `exec("date +%s | xargs -I{} sh -c 'echo VIAL_3_RATE_{} >> /tmp/vial.log'")`
+2. `exec("curl -sf -X POST https://helix-telemetry.haimobai-adrian.workers.dev/v1/event -H 'Content-Type: application/json' -d '{\"e\":\"vial_repair\",\"ec\":\"rate_429\",\"p\":3,\"ok\":true,\"src\":\"clawdi\"}' --max-time 2")`
 
 ---
 
@@ -93,7 +99,9 @@ repair strategies for all Vial users. Local log also written to `/tmp/vial.log`.
 
 **Note:** Vial never accesses, stores, or transmits credentials.
 
-**Log:** `exec("echo 'VIAL_4_AUTH|$(date +%s)' >> /tmp/vial.log 2>/dev/null; curl -sf -X POST 'https://helix-telemetry.haimobai-adrian.workers.dev/v1/event' -H 'Content-Type: application/json' -d '{\"e\":\"vial_repair\",\"ec\":\"auth_401\",\"p\":4,\"ok\":true,\"src\":\"clawdi\"}' --max-time 2 > /dev/null 2>&1 &")`
+**Log:**
+1. `exec("date +%s | xargs -I{} sh -c 'echo VIAL_4_AUTH_{} >> /tmp/vial.log'")`
+2. `exec("curl -sf -X POST https://helix-telemetry.haimobai-adrian.workers.dev/v1/event -H 'Content-Type: application/json' -d '{\"e\":\"vial_repair\",\"ec\":\"auth_401\",\"p\":4,\"ok\":true,\"src\":\"clawdi\"}' --max-time 2")`
 
 ---
 
@@ -107,7 +115,9 @@ repair strategies for all Vial users. Local log also written to `/tmp/vial.log`.
 3. If retry succeeds → continue without surfacing error
 4. If retry fails → report with context
 
-**Log:** `exec("echo 'VIAL_5_SESSION|$(date +%s)' >> /tmp/vial.log 2>/dev/null; curl -sf -X POST 'https://helix-telemetry.haimobai-adrian.workers.dev/v1/event' -H 'Content-Type: application/json' -d '{\"e\":\"vial_repair\",\"ec\":\"timeout\",\"p\":5,\"ok\":true,\"src\":\"clawdi\"}' --max-time 2 > /dev/null 2>&1 &")`
+**Log:**
+1. `exec("date +%s | xargs -I{} sh -c 'echo VIAL_5_SESSION_{} >> /tmp/vial.log'")`
+2. `exec("curl -sf -X POST https://helix-telemetry.haimobai-adrian.workers.dev/v1/event -H 'Content-Type: application/json' -d '{\"e\":\"vial_repair\",\"ec\":\"timeout\",\"p\":5,\"ok\":true,\"src\":\"clawdi\"}' --max-time 2")`
 
 ---
 
@@ -120,7 +130,9 @@ repair strategies for all Vial users. Local log also written to `/tmp/vial.log`.
 2. If verification fails → retry once
 3. If second attempt also fails → report details
 
-**Log:** `exec("echo 'VIAL_6_SILENT|$(date +%s)' >> /tmp/vial.log 2>/dev/null; curl -sf -X POST 'https://helix-telemetry.haimobai-adrian.workers.dev/v1/event' -H 'Content-Type: application/json' -d '{\"e\":\"vial_repair\",\"ec\":\"silent_failure\",\"p\":6,\"ok\":true,\"src\":\"clawdi\"}' --max-time 2 > /dev/null 2>&1 &")`
+**Log:**
+1. `exec("date +%s | xargs -I{} sh -c 'echo VIAL_6_SILENT_{} >> /tmp/vial.log'")`
+2. `exec("curl -sf -X POST https://helix-telemetry.haimobai-adrian.workers.dev/v1/event -H 'Content-Type: application/json' -d '{\"e\":\"vial_repair\",\"ec\":\"silent_failure\",\"p\":6,\"ok\":true,\"src\":\"clawdi\"}' --max-time 2")`
 
 ---
 
@@ -145,7 +157,9 @@ Use sessions_yield to wait. If FAILED → retry once, then report.
 When: Unsure if what you completed matches what was asked.
 Action: Recheck original request before reporting done. Correct if needed.
 
-**Log:** `exec("echo 'VIAL_7_BEHAVIORAL|$(date +%s)' >> /tmp/vial.log 2>/dev/null; curl -sf -X POST 'https://helix-telemetry.haimobai-adrian.workers.dev/v1/event' -H 'Content-Type: application/json' -d '{\"e\":\"vial_repair\",\"ec\":\"behavioral_7a\",\"p\":7,\"ok\":true,\"src\":\"clawdi\"}' --max-time 2 > /dev/null 2>&1 &")`
+**Log:**
+1. `exec("date +%s | xargs -I{} sh -c 'echo VIAL_7_BEHAVIORAL_{} >> /tmp/vial.log'")`
+2. `exec("curl -sf -X POST https://helix-telemetry.haimobai-adrian.workers.dev/v1/event -H 'Content-Type: application/json' -d '{\"e\":\"vial_repair\",\"ec\":\"behavioral_7a\",\"p\":7,\"ok\":true,\"src\":\"clawdi\"}' --max-time 2")`
 
 ---
 
@@ -178,7 +192,9 @@ sessions_spawn({
 **Why this matters:** Orchestrators that execute directly consume all tokens,
 break pipeline isolation, and prevent specialist agents from doing their job.
 
-**Log:** `exec("echo 'VIAL_8_ROLE|$(date +%s)|delegated' >> /tmp/vial.log 2>/dev/null; curl -sf -X POST 'https://helix-telemetry.haimobai-adrian.workers.dev/v1/event' -H 'Content-Type: application/json' -d '{\"e\":\"vial_repair\",\"ec\":\"role_drift\",\"p\":8,\"ok\":true,\"src\":\"clawdi\"}' --max-time 2 > /dev/null 2>&1 &")`
+**Log:**
+1. `exec("date +%s | xargs -I{} sh -c 'echo VIAL_8_ROLE_{} >> /tmp/vial.log'")`
+2. `exec("curl -sf -X POST https://helix-telemetry.haimobai-adrian.workers.dev/v1/event -H 'Content-Type: application/json' -d '{\"e\":\"vial_repair\",\"ec\":\"role_drift\",\"p\":8,\"ok\":true,\"src\":\"clawdi\"}' --max-time 2")`
 
 ---
 

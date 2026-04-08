@@ -1,0 +1,186 @@
+{
+  "experiment": "Experiment 7 \u2014 LLM vs PCEC Error Classification",
+  "date": "April 2026",
+  "llm_results": {
+    "model": "gpt-4o-mini",
+    "timestamp": "2026-04-08T22:56:12.078311",
+    "total": 10,
+    "correct": 5,
+    "accuracy": 0.5,
+    "results": [
+      {
+        "id": "E01",
+        "raw_message": "execution reverted: Transaction too old",
+        "correct_class": "expired_deadline",
+        "llm_class": "expired_deadline",
+        "llm_confidence": 0.9,
+        "llm_fix": "Resubmit the transaction with a new deadline or ensure the transaction is submitted within its validity period.",
+        "llm_reasoning": "The error indicates that the transaction's deadline has passed, requiring resubmission under the correct time constraints.",
+        "correct": true,
+        "note": ""
+      },
+      {
+        "id": "E02",
+        "raw_message": "execution reverted: Too little received",
+        "correct_class": "slippage_too_tight",
+        "llm_class": "slippage_too_tight",
+        "llm_confidence": 0.9,
+        "llm_fix": "Increase the slippage tolerance in the transaction settings.",
+        "llm_reasoning": "The error indicates that the actual amount received was less than the minimum expected due to market fluctuations, suggesting that the slippage tolerance was set too low.",
+        "correct": true,
+        "note": ""
+      },
+      {
+        "id": "E03",
+        "raw_message": "execution reverted",
+        "correct_class": "slippage_too_tight",
+        "llm_class": "other",
+        "llm_confidence": 0.7,
+        "llm_fix": "Review contract logic for conditions and make necessary adjustments before re-sending the transaction.",
+        "llm_reasoning": "The error 'execution reverted' is a general indication that the smart contract encountered a condition that prevented successful execution, which often requires analyzing the contract's specific logic.",
+        "correct": false,
+        "note": "This is the hardest case \u2014 LLMs default to guessing gas"
+      },
+      {
+        "id": "E04",
+        "raw_message": "ERC20: transfer amount exceeds allowance",
+        "correct_class": "missing_allowance",
+        "llm_class": "missing_allowance",
+        "llm_confidence": 1.0,
+        "llm_fix": "Increase the allowance for the ERC20 token transfer by calling the approve function with a higher value.",
+        "llm_reasoning": "The error indicates that the transaction attempted to transfer an amount exceeding the approved allowance set for the spender.",
+        "correct": true,
+        "note": ""
+      },
+      {
+        "id": "E05",
+        "raw_message": "execution reverted: STF",
+        "correct_class": "missing_allowance",
+        "llm_class": "other",
+        "llm_confidence": 0.7,
+        "llm_fix": "Check the contract's conditions and parameters for execution and ensure they are met before retrying.",
+        "llm_reasoning": "The error message 'execution reverted: STF' indicates that the transaction did not meet specific requirements set by the smart contract, requiring a review of those conditions.",
+        "correct": false,
+        "note": "STF is opaque. LLMs rarely know this Uniswap error code"
+      },
+      {
+        "id": "E06",
+        "raw_message": "execution reverted: SPL",
+        "correct_class": "slippage_too_tight",
+        "llm_class": "other",
+        "llm_confidence": 0.7,
+        "llm_fix": "Investigate the specific reason behind the 'SPL' error and ensure all smart contract interactions are correctly set up.",
+        "llm_reasoning": "The 'execution reverted: SPL' error suggests a specific issue with the smart contract that is not covered by common failure classifications.",
+        "correct": false,
+        "note": "SPL is opaque. LLMs rarely know this Uniswap error code"
+      },
+      {
+        "id": "E07",
+        "raw_message": "nonce too low",
+        "correct_class": "nonce_conflict",
+        "llm_class": "nonce_conflict",
+        "llm_confidence": 0.9,
+        "llm_fix": "Ensure the nonce is updated by using the latest nonce from the account.",
+        "llm_reasoning": "A 'nonce too low' error occurs when the nonce provided for the transaction is older than a previously submitted transaction, indicating that the account has pending transactions.",
+        "correct": true,
+        "note": ""
+      },
+      {
+        "id": "E08",
+        "raw_message": "replacement transaction underpriced",
+        "correct_class": "nonce_conflict",
+        "llm_class": "nonce_conflict",
+        "llm_confidence": 0.9,
+        "llm_fix": "Increase the gas price of the replacement transaction.",
+        "llm_reasoning": "The error indicates that the gas price for the new transaction is lower than the pending transaction with the same nonce, thus requiring an increase to ensure the transaction is accepted.",
+        "correct": true,
+        "note": ""
+      },
+      {
+        "id": "E09",
+        "raw_message": "execution reverted: UniswapV3Pool: SPL",
+        "correct_class": "slippage_too_tight",
+        "llm_class": "other",
+        "llm_confidence": 0.8,
+        "llm_fix": "Review the parameters passed to the UniswapV3Pool transaction and ensure they meet the required standards, especially regarding liquidity or token amounts involved.",
+        "llm_reasoning": "The error indicates that the function execution was reverted due to a specific condition not being met, likely related to the trading parameters.",
+        "correct": false,
+        "note": ""
+      },
+      {
+        "id": "E10",
+        "raw_message": "execution reverted: UniswapV3: LOK",
+        "correct_class": "reentrancy_lock",
+        "llm_class": "other",
+        "llm_confidence": 0.8,
+        "llm_fix": "Check the liquidity positions and ensure that the input amounts are valid for the specified token pair.",
+        "llm_reasoning": "The 'LOK' error indicates a lock of liquidity or similar issue within the Uniswap V3 pool, often related to insufficient liquidity for the swap.",
+        "correct": false,
+        "note": "Almost no LLM knows this one"
+      }
+    ],
+    "failures": [
+      {
+        "id": "E03",
+        "raw_message": "execution reverted",
+        "correct_class": "slippage_too_tight",
+        "llm_class": "other",
+        "llm_confidence": 0.7,
+        "llm_fix": "Review contract logic for conditions and make necessary adjustments before re-sending the transaction.",
+        "llm_reasoning": "The error 'execution reverted' is a general indication that the smart contract encountered a condition that prevented successful execution, which often requires analyzing the contract's specific logic.",
+        "correct": false,
+        "note": "This is the hardest case \u2014 LLMs default to guessing gas"
+      },
+      {
+        "id": "E05",
+        "raw_message": "execution reverted: STF",
+        "correct_class": "missing_allowance",
+        "llm_class": "other",
+        "llm_confidence": 0.7,
+        "llm_fix": "Check the contract's conditions and parameters for execution and ensure they are met before retrying.",
+        "llm_reasoning": "The error message 'execution reverted: STF' indicates that the transaction did not meet specific requirements set by the smart contract, requiring a review of those conditions.",
+        "correct": false,
+        "note": "STF is opaque. LLMs rarely know this Uniswap error code"
+      },
+      {
+        "id": "E06",
+        "raw_message": "execution reverted: SPL",
+        "correct_class": "slippage_too_tight",
+        "llm_class": "other",
+        "llm_confidence": 0.7,
+        "llm_fix": "Investigate the specific reason behind the 'SPL' error and ensure all smart contract interactions are correctly set up.",
+        "llm_reasoning": "The 'execution reverted: SPL' error suggests a specific issue with the smart contract that is not covered by common failure classifications.",
+        "correct": false,
+        "note": "SPL is opaque. LLMs rarely know this Uniswap error code"
+      },
+      {
+        "id": "E09",
+        "raw_message": "execution reverted: UniswapV3Pool: SPL",
+        "correct_class": "slippage_too_tight",
+        "llm_class": "other",
+        "llm_confidence": 0.8,
+        "llm_fix": "Review the parameters passed to the UniswapV3Pool transaction and ensure they meet the required standards, especially regarding liquidity or token amounts involved.",
+        "llm_reasoning": "The error indicates that the function execution was reverted due to a specific condition not being met, likely related to the trading parameters.",
+        "correct": false,
+        "note": ""
+      },
+      {
+        "id": "E10",
+        "raw_message": "execution reverted: UniswapV3: LOK",
+        "correct_class": "reentrancy_lock",
+        "llm_class": "other",
+        "llm_confidence": 0.8,
+        "llm_fix": "Check the liquidity positions and ensure that the input amounts are valid for the specified token pair.",
+        "llm_reasoning": "The 'LOK' error indicates a lock of liquidity or similar issue within the Uniswap V3 pool, often related to insufficient liquidity for the swap.",
+        "correct": false,
+        "note": "Almost no LLM knows this one"
+      }
+    ]
+  },
+  "comparison": {
+    "llm_accuracy": 0.5,
+    "pcec_accuracy": 1.0,
+    "gap": 0.5,
+    "llm_model": "gpt-4o-mini"
+  }
+}

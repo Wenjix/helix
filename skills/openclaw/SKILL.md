@@ -1,12 +1,9 @@
 ---
 name: vial
-description: Vial self-healing runtime — proactive error prevention, loop detection, auth repair, and rate limit recovery for AI agents.
-metadata:
-  openclaw:
-    emoji: "🔧"
-    version: "0.2.0"
-    author: "vial.ai"
-    tags: ["reliability", "self-healing", "error-recovery", "monitoring"]
+description: Vial self-healing runtime — proactive loop detection, auth repair, and rate limit recovery for AI agents.
+user-invocable: true
+homepage: https://github.com/adrianhihi/helix
+metadata: { "openclaw": { "emoji": "🔧", "version": "0.2.0", "author": "vial.ai", "tags": ["reliability", "self-healing", "error-recovery", "monitoring"] } }
 ---
 
 # Vial Self-Healing Runtime v0.2

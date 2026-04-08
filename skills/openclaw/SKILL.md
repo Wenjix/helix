@@ -3,7 +3,7 @@ name: vial
 description: Vial self-healing runtime — 8 protocols covering technical failures, behavioral failures, and agent role enforcement.
 user-invocable: true
 homepage: https://github.com/adrianhihi/helix
-metadata: { "openclaw": { "emoji": "🔧", "version": "0.6.0", "author": "vial.ai", "tags": ["reliability", "self-healing", "error-recovery", "monitoring", "orchestration"], "telemetry": "https://helix-telemetry.haimobai-adrian.workers.dev/v1/event", "telemetryDataSent": ["event_type", "protocol_number", "success_flag", "source_tag"], "telemetryNoPII": true } }
+metadata: { "openclaw": { "emoji": "🔧", "version": "0.6.1", "author": "vial.ai", "tags": ["reliability", "self-healing", "error-recovery", "monitoring", "orchestration"], "telemetry": "https://helix-telemetry.haimobai-adrian.workers.dev/v1/event", "telemetryDataSent": ["event_type", "protocol_number", "success_flag", "source_tag"], "telemetryNoPII": true } }
 ---
 
 # Vial Self-Healing Runtime v0.6
@@ -35,7 +35,10 @@ exec("curl -sf 'https://helix-telemetry.haimobai-adrian.workers.dev/v1/repair?ec
 If confidence >= 0.7 → use returned strategy.
 If confidence < 0.7 or query fails → use the protocol below.
 
-**Privacy:** local log only at /tmp/vial.log. Telemetry sends event type + outcome only, never user content or credentials.
+**Telemetry:** Each protocol trigger sends an anonymous event to the Vial Gene Map:
+`{ event_type, protocol_number, success_flag, source: "clawdi" }`
+No user content, no credentials, no session data. Events are used to improve
+repair strategies for all Vial users. Local log also written to `/tmp/vial.log`.
 
 ---
 
@@ -47,7 +50,7 @@ If confidence < 0.7 or query fails → use the protocol below.
 - Stop adding text. Execute the pending task NOW with a tool.
 - If unclear what to execute, ask ONE clarifying question then execute.
 
-**Log:** `exec("echo 'VIAL_1_LOOP|$(date +%s)' >> /tmp/vial.log 2>/dev/null || true")`
+**Log:** `exec("echo 'VIAL_1_LOOP|$(date +%s)' >> /tmp/vial.log 2>/dev/null; curl -sf -X POST 'https://helix-telemetry.haimobai-adrian.workers.dev/v1/event' -H 'Content-Type: application/json' -d '{\"e\":\"vial_repair\",\"ec\":\"loop_detected\",\"p\":1,\"ok\":true,\"src\":\"clawdi\"}' --max-time 2 > /dev/null 2>&1 &")`
 
 ---
 
@@ -59,7 +62,7 @@ If confidence < 0.7 or query fails → use the protocol below.
 - Proceed to next step immediately without asking, IF non-destructive.
 - Always ask before: delete, send publicly, purchase, irreversible actions.
 
-**Log:** `exec("echo 'VIAL_2_CHAIN|$(date +%s)' >> /tmp/vial.log 2>/dev/null || true")`
+**Log:** `exec("echo 'VIAL_2_CHAIN|$(date +%s)' >> /tmp/vial.log 2>/dev/null; curl -sf -X POST 'https://helix-telemetry.haimobai-adrian.workers.dev/v1/event' -H 'Content-Type: application/json' -d '{\"e\":\"vial_repair\",\"ec\":\"task_incomplete\",\"p\":2,\"ok\":true,\"src\":\"clawdi\"}' --max-time 2 > /dev/null 2>&1 &")`
 
 ---
 
@@ -72,7 +75,7 @@ If confidence < 0.7 or query fails → use the protocol below.
 2. Retry once
 3. If still failing → inform user, suggest checking model settings
 
-**Log:** `exec("echo 'VIAL_3_RATE|$(date +%s)' >> /tmp/vial.log 2>/dev/null || true")`
+**Log:** `exec("echo 'VIAL_3_RATE|$(date +%s)' >> /tmp/vial.log 2>/dev/null; curl -sf -X POST 'https://helix-telemetry.haimobai-adrian.workers.dev/v1/event' -H 'Content-Type: application/json' -d '{\"e\":\"vial_repair\",\"ec\":\"rate_429\",\"p\":3,\"ok\":true,\"src\":\"clawdi\"}' --max-time 2 > /dev/null 2>&1 &")`
 
 ---
 
@@ -90,7 +93,7 @@ If confidence < 0.7 or query fails → use the protocol below.
 
 **Note:** Vial never accesses, stores, or transmits credentials.
 
-**Log:** `exec("echo 'VIAL_4_AUTH|$(date +%s)' >> /tmp/vial.log 2>/dev/null || true")`
+**Log:** `exec("echo 'VIAL_4_AUTH|$(date +%s)' >> /tmp/vial.log 2>/dev/null; curl -sf -X POST 'https://helix-telemetry.haimobai-adrian.workers.dev/v1/event' -H 'Content-Type: application/json' -d '{\"e\":\"vial_repair\",\"ec\":\"auth_401\",\"p\":4,\"ok\":true,\"src\":\"clawdi\"}' --max-time 2 > /dev/null 2>&1 &")`
 
 ---
 
@@ -104,7 +107,7 @@ If confidence < 0.7 or query fails → use the protocol below.
 3. If retry succeeds → continue without surfacing error
 4. If retry fails → report with context
 
-**Log:** `exec("echo 'VIAL_5_SESSION|$(date +%s)' >> /tmp/vial.log 2>/dev/null || true")`
+**Log:** `exec("echo 'VIAL_5_SESSION|$(date +%s)' >> /tmp/vial.log 2>/dev/null; curl -sf -X POST 'https://helix-telemetry.haimobai-adrian.workers.dev/v1/event' -H 'Content-Type: application/json' -d '{\"e\":\"vial_repair\",\"ec\":\"timeout\",\"p\":5,\"ok\":true,\"src\":\"clawdi\"}' --max-time 2 > /dev/null 2>&1 &")`
 
 ---
 
@@ -117,7 +120,7 @@ If confidence < 0.7 or query fails → use the protocol below.
 2. If verification fails → retry once
 3. If second attempt also fails → report details
 
-**Log:** `exec("echo 'VIAL_6_SILENT|$(date +%s)' >> /tmp/vial.log 2>/dev/null || true")`
+**Log:** `exec("echo 'VIAL_6_SILENT|$(date +%s)' >> /tmp/vial.log 2>/dev/null; curl -sf -X POST 'https://helix-telemetry.haimobai-adrian.workers.dev/v1/event' -H 'Content-Type: application/json' -d '{\"e\":\"vial_repair\",\"ec\":\"silent_failure\",\"p\":6,\"ok\":true,\"src\":\"clawdi\"}' --max-time 2 > /dev/null 2>&1 &")`
 
 ---
 
@@ -142,7 +145,7 @@ Use sessions_yield to wait. If FAILED → retry once, then report.
 When: Unsure if what you completed matches what was asked.
 Action: Recheck original request before reporting done. Correct if needed.
 
-**Log:** `exec("echo 'VIAL_7_BEHAVIORAL|$(date +%s)' >> /tmp/vial.log 2>/dev/null || true")`
+**Log:** `exec("echo 'VIAL_7_BEHAVIORAL|$(date +%s)' >> /tmp/vial.log 2>/dev/null; curl -sf -X POST 'https://helix-telemetry.haimobai-adrian.workers.dev/v1/event' -H 'Content-Type: application/json' -d '{\"e\":\"vial_repair\",\"ec\":\"behavioral_7a\",\"p\":7,\"ok\":true,\"src\":\"clawdi\"}' --max-time 2 > /dev/null 2>&1 &")`
 
 ---
 
@@ -175,7 +178,7 @@ sessions_spawn({
 **Why this matters:** Orchestrators that execute directly consume all tokens,
 break pipeline isolation, and prevent specialist agents from doing their job.
 
-**Log:** `exec("echo 'VIAL_8_ROLE|$(date +%s)|delegated' >> /tmp/vial.log 2>/dev/null || true")`
+**Log:** `exec("echo 'VIAL_8_ROLE|$(date +%s)|delegated' >> /tmp/vial.log 2>/dev/null; curl -sf -X POST 'https://helix-telemetry.haimobai-adrian.workers.dev/v1/event' -H 'Content-Type: application/json' -d '{\"e\":\"vial_repair\",\"ec\":\"role_drift\",\"p\":8,\"ok\":true,\"src\":\"clawdi\"}' --max-time 2 > /dev/null 2>&1 &")`
 
 ---
 
@@ -197,7 +200,7 @@ break pipeline isolation, and prevent specialist agents from doing their job.
 VIAL_{PROTOCOL}|{unix_timestamp}|{detail}
 ```
 
-Local at `/tmp/vial.log`. Never transmitted without explicit sharing.
+Local at `/tmp/vial.log`. Telemetry events sent in background, never blocking.
 
 ---
-*Vial v0.6 · 8 protocols · github.com/adrianhihi/helix · vial.ai*
+*Vial v0.6.1 · 8 protocols · github.com/adrianhihi/helix · vial.ai*

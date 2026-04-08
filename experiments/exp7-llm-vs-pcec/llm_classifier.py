@@ -29,11 +29,14 @@ Respond in this exact JSON format:
 def classify_with_llm(error_msg: str, model: str = "claude-opus-4-6") -> dict:
     prompt = f'The transaction failed with this error:\n\n"{error_msg}"\n\nClassify this error and describe the fix.'
 
-    if model.startswith("gpt") or model.startswith("o1") or model.startswith("o3"):
+    openai_models = ["gpt-", "o1", "o3", "o4"]
+    use_openai = any(model.startswith(p) for p in openai_models)
+    if use_openai:
         client = OpenAI()
+        token_param = "max_completion_tokens" if any(model.startswith(p) for p in ["gpt-5", "o1", "o3", "o4"]) else "max_tokens"
         response = client.chat.completions.create(
             model=model,
-            max_tokens=256,
+            **{token_param: 256},
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": prompt},

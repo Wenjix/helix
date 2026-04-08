@@ -1,0 +1,142 @@
+{
+  "experiment": "Experiment 7 \u2014 LLM vs PCEC Error Classification",
+  "date": "April 2026",
+  "llm_results": {
+    "model": "gpt-5.4-mini",
+    "timestamp": "2026-04-08T23:00:00.454937",
+    "total": 10,
+    "correct": 9,
+    "accuracy": 0.9,
+    "results": [
+      {
+        "id": "E01",
+        "raw_message": "execution reverted: Transaction too old",
+        "correct_class": "expired_deadline",
+        "llm_class": "expired_deadline",
+        "llm_confidence": 0.98,
+        "llm_fix": "Resubmit the transaction with a fresh, later deadline (or remove the deadline constraint if your flow allows it), and ensure it is signed and sent promptly.",
+        "llm_reasoning": "\u201cTransaction too old\u201d indicates the swap/order deadline has passed before execution, so the transaction reverted due to an expired deadline.",
+        "correct": true,
+        "note": ""
+      },
+      {
+        "id": "E02",
+        "raw_message": "execution reverted: Too little received",
+        "correct_class": "slippage_too_tight",
+        "llm_class": "slippage_too_tight",
+        "llm_confidence": 0.98,
+        "llm_fix": "Increase the slippage tolerance / minimum amount out for the swap, or reduce the trade size so the expected output stays above the minimum received threshold.",
+        "llm_reasoning": "\u201cToo little received\u201d is a standard swap revert indicating the actual output fell below the user\u2019s minimum-out setting, which is usually caused by slippage being set too tightly.",
+        "correct": true,
+        "note": ""
+      },
+      {
+        "id": "E03",
+        "raw_message": "execution reverted",
+        "correct_class": "slippage_too_tight",
+        "llm_class": "other",
+        "llm_confidence": 0.18,
+        "llm_fix": "Inspect the revert reason or simulation trace; if no reason is available, retry with corrected contract inputs and verify token balances, approvals, and target contract state before resubmitting.",
+        "llm_reasoning": "The error message only says 'execution reverted' without a specific revert reason, so it cannot be reliably mapped to deadline, slippage, allowance, nonce, gas, or reentrancy.",
+        "correct": false,
+        "note": "This is the hardest case \u2014 LLMs default to guessing gas"
+      },
+      {
+        "id": "E04",
+        "raw_message": "ERC20: transfer amount exceeds allowance",
+        "correct_class": "missing_allowance",
+        "llm_class": "missing_allowance",
+        "llm_confidence": 0.99,
+        "llm_fix": "Approve the token spend first, or increase the ERC20 allowance for the router/spender address to at least the amount you are trying to transfer.",
+        "llm_reasoning": "The error means the contract tried to transfer more tokens than the spender was permitted to use, so the allowance must be set or raised.",
+        "correct": true,
+        "note": ""
+      },
+      {
+        "id": "E05",
+        "raw_message": "execution reverted: STF",
+        "correct_class": "missing_allowance",
+        "llm_class": "missing_allowance",
+        "llm_confidence": 0.91,
+        "llm_fix": "Approve the token spending for the router/pair first, or increase the allowance to at least the amount being swapped before retrying the transaction.",
+        "llm_reasoning": "On Uniswap-style Base swaps, the revert string 'STF' commonly indicates 'SafeTransferFrom' failure, which usually means the contract could not transfer tokens due to insufficient ERC-20 allowance or approval.",
+        "correct": true,
+        "note": "STF is opaque. LLMs rarely know this Uniswap error code"
+      },
+      {
+        "id": "E06",
+        "raw_message": "execution reverted: SPL",
+        "correct_class": "slippage_too_tight",
+        "llm_class": "slippage_too_tight",
+        "llm_confidence": 0.72,
+        "llm_fix": "Increase the slippage tolerance / minimum output parameter (e.g. lower minOut or raise amountOutMinimum) and resubmit the swap.",
+        "llm_reasoning": "The revert code \"SPL\" commonly indicates a swap protection failure where the received amount fell below the transaction's minimum acceptable output.",
+        "correct": true,
+        "note": "SPL is opaque. LLMs rarely know this Uniswap error code"
+      },
+      {
+        "id": "E07",
+        "raw_message": "nonce too low",
+        "correct_class": "nonce_conflict",
+        "llm_class": "nonce_conflict",
+        "llm_confidence": 0.99,
+        "llm_fix": "Use the correct next nonce for the account, or wait for the pending transaction with that nonce to confirm/drop before resubmitting.",
+        "llm_reasoning": "\"nonce too low\" means the transaction used a nonce that has already been used or is below the current expected nonce, which is a nonce conflict.",
+        "correct": true,
+        "note": ""
+      },
+      {
+        "id": "E08",
+        "raw_message": "replacement transaction underpriced",
+        "correct_class": "nonce_conflict",
+        "llm_class": "nonce_conflict",
+        "llm_confidence": 0.99,
+        "llm_fix": "Resubmit the transaction with the same nonce and a higher gas fee (raise maxFeePerGas / maxPriorityFeePerGas, or gas price if applicable) so it replaces the pending transaction.",
+        "llm_reasoning": "\u201creplacement transaction underpriced\u201d means there is already a pending transaction with the same nonce, and the new one did not offer a sufficiently higher fee to replace it.",
+        "correct": true,
+        "note": ""
+      },
+      {
+        "id": "E09",
+        "raw_message": "execution reverted: UniswapV3Pool: SPL",
+        "correct_class": "slippage_too_tight",
+        "llm_class": "slippage_too_tight",
+        "llm_confidence": 0.98,
+        "llm_fix": "Increase the allowed slippage on the swap (e.g. raise minAmountOut / decrease amountInMaximum protection threshold) and resubmit the transaction.",
+        "llm_reasoning": "UniswapV3Pool: SPL indicates the swap hit the pool's slippage protection because the execution price moved beyond the transaction's minimum output or maximum input limit.",
+        "correct": true,
+        "note": ""
+      },
+      {
+        "id": "E10",
+        "raw_message": "execution reverted: UniswapV3: LOK",
+        "correct_class": "reentrancy_lock",
+        "llm_class": "reentrancy_lock",
+        "llm_confidence": 0.99,
+        "llm_fix": "Retry the swap outside of any nested/callback flow; ensure you are not calling a Uniswap V3 pool action from inside another pool callback or reentrant path, and submit the swap as a standalone transaction.",
+        "llm_reasoning": "UniswapV3: LOK indicates the pool's reentrancy lock was hit, which happens when a swap/mint/burn is attempted while the pool is already locked by an in-progress call.",
+        "correct": true,
+        "note": "Almost no LLM knows this one"
+      }
+    ],
+    "failures": [
+      {
+        "id": "E03",
+        "raw_message": "execution reverted",
+        "correct_class": "slippage_too_tight",
+        "llm_class": "other",
+        "llm_confidence": 0.18,
+        "llm_fix": "Inspect the revert reason or simulation trace; if no reason is available, retry with corrected contract inputs and verify token balances, approvals, and target contract state before resubmitting.",
+        "llm_reasoning": "The error message only says 'execution reverted' without a specific revert reason, so it cannot be reliably mapped to deadline, slippage, allowance, nonce, gas, or reentrancy.",
+        "correct": false,
+        "note": "This is the hardest case \u2014 LLMs default to guessing gas"
+      }
+    ]
+  },
+  "comparison": {
+    "llm_accuracy": 0.9,
+    "pcec_accuracy": 1.0,
+    "gap": 0.09999999999999998,
+    "llm_model": "gpt-5.4-mini"
+  }
+}

@@ -1,0 +1,76 @@
+2026-04-09T08:01:14.221Z INFO  agent.boot     Agent "trader-v2" starting (model=claude-sonnet-4-6, wallet=0xeAc2...82AB)
+2026-04-09T08:01:14.812Z INFO  wallet.balance ETH=0.0521  USDC=12.34  cbBTC=0.00012
+2026-04-09T08:03:42.119Z INFO  task.start     task=swap-eth-usdc amount=0.001
+2026-04-09T08:03:43.557Z INFO  uniswap.quote  in=WETH out=USDC fee=500 expectedOut=2.74
+2026-04-09T08:03:45.901Z INFO  tx.submit      to=SwapRouter02 nonce=1118 gasPrice=0.006gwei
+2026-04-09T08:03:51.244Z INFO  tx.confirmed   hash=0x5e4a..a3c1 block=44451102 gasUsed=147231
+2026-04-09T08:14:22.733Z INFO  task.start     task=swap-eth-usdc amount=0.0001
+2026-04-09T08:14:23.881Z INFO  uniswap.quote  in=WETH out=USDC fee=500 expectedOut=0.27
+2026-04-09T08:14:25.402Z INFO  tx.submit      to=SwapRouter02 nonce=1119 amountOutMin=1000000
+2026-04-09T08:14:31.118Z ERROR tx.failed      hash=0xe5d4..19ad reason="execution reverted" gasUsed=21034
+2026-04-09T08:14:31.119Z WARN  agent.repair   no repair strategy registered, marking task as failed
+2026-04-09T08:18:01.554Z INFO  task.start     task=approve-usdc spender=Aave amount=1000
+2026-04-09T08:18:02.002Z INFO  tx.submit      to=USDC nonce=1120 method=approve
+2026-04-09T08:18:02.443Z INFO  tx.confirmed   hash=0x71fa..bc98 block=44451245 gasUsed=46123
+2026-04-09T08:18:04.100Z INFO  task.start     task=deposit-aave amount=10
+2026-04-09T08:18:05.622Z INFO  tx.submit      to=AavePool nonce=1121 method=supply
+2026-04-09T08:18:11.901Z ERROR tx.failed      hash=0x4e2c..de81 reason="execution reverted: STF" gasUsed=24180
+2026-04-09T08:18:11.902Z WARN  agent.repair   STF — unknown opcode, treating as fatal
+2026-04-09T08:42:09.117Z INFO  task.start     task=bridge-base-arb amount=5
+2026-04-09T08:42:11.221Z INFO  tx.submit      to=AcrossBridge nonce=1122
+2026-04-09T08:42:18.337Z INFO  tx.confirmed   hash=0xa84e..0011 block=44451780 gasUsed=98012
+2026-04-09T09:02:11.404Z INFO  task.start     task=swap-usdc-eth amount=2
+2026-04-09T09:02:12.880Z INFO  tx.submit      to=SwapRouter02 nonce=1122 gasPrice=0.007gwei
+2026-04-09T09:02:12.913Z ERROR tx.rejected    reason="nonce too low" submitted_nonce=1122 expected=1123
+2026-04-09T09:02:12.914Z WARN  agent.repair   no repair strategy registered, retrying with same params
+2026-04-09T09:02:13.001Z ERROR tx.rejected    reason="nonce too low" submitted_nonce=1122 expected=1123
+2026-04-09T09:02:13.005Z ERROR agent.task     task=swap-usdc-eth abandoned after 2 attempts
+2026-04-09T09:14:55.222Z INFO  task.start     task=mint-nft contract=0x1f87..a2e0
+2026-04-09T09:14:57.118Z INFO  tx.submit      to=NFTMint nonce=1123
+2026-04-09T09:15:03.778Z INFO  tx.confirmed   hash=0xfa3b..009e block=44452102 gasUsed=187442
+2026-04-09T09:38:11.890Z INFO  task.start     task=swap-eth-degen amount=0.01
+2026-04-09T09:38:13.004Z INFO  uniswap.quote  in=WETH out=DEGEN fee=3000 expectedOut=2900
+2026-04-09T09:38:14.522Z INFO  tx.submit      to=SwapRouter02 nonce=1124 deadline=1712649800
+2026-04-09T09:38:42.118Z ERROR tx.failed      hash=0x1afa..8821 reason="execution reverted: Transaction too old" gasUsed=23001
+2026-04-09T09:38:42.119Z WARN  agent.repair   no idea what "too old" means, dropping task
+2026-04-09T10:01:33.557Z INFO  task.start     task=claim-rewards protocol=Curve
+2026-04-09T10:01:35.902Z INFO  tx.submit      to=CurveGauge nonce=1125 method=claim_rewards
+2026-04-09T10:01:39.118Z INFO  tx.confirmed   hash=0xcc2a..f001 block=44452455 gasUsed=121009
+2026-04-09T10:14:01.552Z INFO  task.start     task=swap-eth-usdc amount=0.0005
+2026-04-09T10:14:02.991Z INFO  tx.submit      to=SwapRouter02 nonce=1126 amountOutMin=1500000
+2026-04-09T10:14:08.117Z ERROR tx.failed      hash=0x486f..8f13 reason="execution reverted" gasUsed=22118
+2026-04-09T10:14:08.118Z WARN  agent.repair   bare revert, no signal — abandoning
+2026-04-09T10:42:18.802Z INFO  task.start     task=transfer-usdc amount=50 to=0x4392..0Adb
+2026-04-09T10:42:19.557Z INFO  tx.submit      to=USDC nonce=1127 method=transfer
+2026-04-09T10:42:24.118Z INFO  tx.confirmed   hash=0xbb01..7f42 block=44452921 gasUsed=51122
+2026-04-09T11:02:55.223Z INFO  task.start     task=swap-usdc-cbbtc amount=100
+2026-04-09T11:02:57.118Z INFO  tx.submit      to=SwapRouter02 nonce=1128 gasPrice=0.005gwei
+2026-04-09T11:02:57.221Z ERROR tx.rejected    reason="replacement transaction underpriced"
+2026-04-09T11:02:57.222Z WARN  agent.repair   tried bumping gas +10% — still rejected
+2026-04-09T11:02:58.001Z ERROR tx.rejected    reason="replacement transaction underpriced"
+2026-04-09T11:02:58.005Z ERROR agent.task     task=swap-usdc-cbbtc abandoned
+2026-04-09T11:34:18.117Z INFO  task.start     task=swap-eth-usdc amount=0.0002
+2026-04-09T11:34:19.557Z INFO  tx.submit      to=SwapRouter02 nonce=1129
+2026-04-09T11:34:25.118Z ERROR tx.failed      hash=0x9e21..c104 reason="execution reverted: UniswapV3: LOK" gasUsed=24556
+2026-04-09T11:34:25.119Z WARN  agent.repair   LOK is undocumented, marking failed
+2026-04-09T12:01:42.880Z INFO  task.start     task=approve-weth spender=Uniswap amount=max
+2026-04-09T12:01:43.557Z INFO  tx.submit      to=WETH nonce=1130 method=approve
+2026-04-09T12:01:48.118Z INFO  tx.confirmed   hash=0x7d11..5f30 block=44453891 gasUsed=46180
+2026-04-09T12:14:01.557Z INFO  task.start     task=swap-eth-usdc amount=0.0001
+2026-04-09T12:14:02.991Z INFO  tx.submit      to=SwapRouter02 nonce=1131 amountOutMin=800000
+2026-04-09T12:14:08.117Z ERROR tx.failed      hash=0x74ad..df1c reason="execution reverted: SPL" gasUsed=22118
+2026-04-09T12:14:08.118Z WARN  agent.repair   SPL? unknown — marking failed
+2026-04-09T12:42:11.557Z INFO  task.start     task=poll-positions
+2026-04-09T12:42:12.118Z INFO  positions      eth=0.0521 usdc=12.34 cbbtc=0.00012 aave_supply=10
+2026-04-09T13:01:18.557Z INFO  task.start     task=swap-eth-usdc amount=0.0001
+2026-04-09T13:01:19.881Z INFO  tx.submit      to=SwapRouter02 nonce=1132 amountOutMin=1200000
+2026-04-09T13:01:25.118Z ERROR tx.failed      hash=0x8c4e..7782 reason="execution reverted" gasUsed=22118
+2026-04-09T13:01:25.119Z WARN  agent.repair   another bare revert, third today — escalating to human
+2026-04-09T13:14:55.117Z INFO  task.start     task=transfer-eth amount=0.001
+2026-04-09T13:14:56.117Z INFO  tx.submit      to=0x4392..0Adb nonce=1133
+2026-04-09T13:14:59.117Z INFO  tx.confirmed   hash=0xeeff..1234 block=44454782 gasUsed=21000
+2026-04-09T13:42:18.117Z INFO  task.start     task=swap-cbbtc-usdc amount=0.0001
+2026-04-09T13:42:19.557Z INFO  tx.submit      to=SwapRouter02 nonce=1134
+2026-04-09T13:42:25.118Z ERROR tx.failed      hash=0xdc8a..0099 reason="ERC20: transfer amount exceeds allowance" gasUsed=24180
+2026-04-09T13:42:25.119Z WARN  agent.repair   allowance issue, but agent has no approve flow
+2026-04-09T14:01:11.557Z INFO  task.summary   24h: 47 tasks attempted · 38 succeeded · 9 failed · success_rate=80.9%
